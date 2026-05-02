@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}课后复习卡片{% endblock %}
+{% block page_title %}课后复习卡片{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <p class="text-muted mb-4">每章精选核心知识点，翻转卡片检验记忆。建议每天复习2-3章，间隔重复效果最佳。</p>
+        <div class="row g-3">
+            {% for ch_id, ch in flashcards.items() %}
+            <div class="col-md-4 col-lg-3">
+                <a href="{{ url_for('study.flashcard_study', chapter_id=ch_id) }}" class="text-decoration-none">
+                    <div class="card h-100 card-hover">
+                        <div class="card-body text-center">
+                            <div class="display-6 mb-2">🃏</div>
+                            <h6 class="card-title">第{{ch_id}}章</h6>
+                            <p class="text-muted small mb-2">{{ ch.title }}</p>
+                            <span class="badge bg-primary">{{ ch.cards|length }} 张卡片</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% block title %}薄弱点分析{% endblock %}
+{% block page_title %}错题薄弱点分析{% endblock %}
+
+{% block content %}
+<!-- 数据为空提示 -->
+<div id="noDataAlert" class="alert alert-warning text-center py-5" style="display:none;">
+    <i class="bi bi-exclamation-triangle" style="font-size:3rem;"></i>
+    <h5 class="mt-3">暂无测验数据</h5>
+    <p class="text-muted">请先完成<a href="/quiz/">章节测验</a>或<a href="/study/exam/">模拟考试</a>，系统会自动记录你的答题情况。</p>
+    <a href="/quiz/" class="btn btn-primary me-2">去做章节测验</a>
+    <a href="/study/exam/" class="btn btn-outline-primary">去模拟考试</a>
+</div>
+
+<!-- 分析结果 -->
+<div id="analysisArea" style="display:none;">
+    <!-- 总览卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <div class="display-4 fw-bold text-primary" id="totalQuestions">0</div>
+                    <div class="text-muted">累计答题</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <div class="display-4 fw-bold text-success" id="totalCorrect">0</div>
+                    <div class="text-muted">答对</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <div class="display-4 fw-bold text-info" id="overallRate">0%</div>
+                    <div class="text-muted">总正确率</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-danger">
+                <div class="card-body">
+                    <div class="display-4 fw-bold text-danger" id="weakCount">0</div>
+                    <div class="text-muted">薄弱章节</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 章节正确率柱状图 -->
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">📊 各章节正确率</h5></div>
+        <div class="card-body">
+            <canvas id="rateChart" height="100"></canvas>
+        </div>
+    </div>
+
+    <!-- 章节详细分析 -->
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">📋 章节详细分析</h5></div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>章节</th>
+                        <th>答题数</th>
+                        <th>正确数</th>
+                        <th>正确率</th>
+                        <th>状态</th>
+                        <th>建议</th>
+                    </tr>
+                </thead>
+                <tbody id="chapterTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 学习建议 -->
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark"><h5 class="mb-0">💡 个性化学习建议</h5></div>
+        <div class="card-body" id="suggestions"></div>
+    </div>
+
+    <!-- 错题重做 -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">📝 错题重做</h5>
+            <button class="btn btn-sm btn-outline-primary" onclick="redoWrong()">
+                <i class="bi bi-arrow-repeat"></i> 重做全部错题
+            </button>
+        </div>
+        <div class="card-body" id="wrongList"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var CHAPTER_NAMES = {
+    1:'ML概述', 2:'数据准备', 3:'特征工程', 4:'线性回归', 5:'KNN',
+    6:'决策树', 7:'逻辑回归', 8:'SVM', 9:'朴素贝叶斯', 10:'神经网络',
+    11:'集成学习', 12:'PCA降维', 13:'聚类'
+};
+
+var CHAPTER_ADVICE = {
+    1: '基础概念题，建议重读教材第1章，理解ML基本流程',
+    2: '数据预处理是ML的基础，建议动手练习数据清洗和特征缩放',
+    3: '特征工程决定模型上限，建议多做特征选择和降维练习',
+    4: '线性回归是回归任务基础，建议理解最小二乘法推导过程',
+    5: 'KNN是最直观的算法，建议通过可视化理解K值和距离度量的影响',
+    6: '决策树容易过拟合，建议理解剪枝原理和信息增益计算',
+    7: '逻辑回归是分类基础，建议理解Sigmoid函数和最大似然估计',
+    8: 'SVM较抽象，建议重点理解核函数和间隔最大化概念',
+    9: '朴素贝叶斯计算简单，建议理解条件独立假设和拉普拉斯平滑',
+    10: '神经网络是深度学习基础，建议理解反向传播和激活函数',
+    11: '集成学习是考试重点，建议对比Bagging和Boosting的区别',
+    12: 'PCA降维需理解协方差矩阵和特征值分解',
+    13: '聚类算法需理解K-Means的迭代过程和评价指标',
+};
+
+function analyzeData() {
+    // 从localStorage读取所有测验记录
+    var quizHistory = JSON.parse(localStorage.getItem('quizHistory') || '[]');
+    var examHistory = JSON.parse(localStorage.getItem('examHistory') || '[]');
+    var wrongBook = JSON.parse(localStorage.getItem('wrongBook') || '[]');
+
+    if (quizHistory.length === 0 && examHistory.length === 0 && wrongBook.length === 0) {
+        document.getElementById('noDataAlert').style.display = 'block';
+        return;
+    }
+
+    document.getElementById('analysisArea').style.display = 'block';
+
+    // 统计各章节数据
+    var chapterStats = {};
+    for (var i = 1; i <= 13; i++) {
+        chapterStats[i] = {total: 0, correct: 0, wrong: []};
+    }
+
+    // 从quizHistory统计
+    quizHistory.forEach(function(record) {
+        var ch = record.chapter;
+        if (ch && chapterStats[ch]) {
+            chapterStats[ch].total++;
+            if (record.correct) chapterStats[ch].correct++;
+            else chapterStats[ch].wrong.push(record);
+        }
+    });
+
+    // 从examHistory统计
+    examHistory.forEach(function(exam) {
+        if (exam.details) {
+            exam.details.forEach(function(d) {
+                var ch = d.chapter;
+                if (ch && chapterStats[ch]) {
+                    chapterStats[ch].total++;
+                    if (d.is_correct) chapterStats[ch].correct++;
+                    else chapterStats[ch].wrong.push(d);
+                }
+            });
+        }
+    });
+
+    // 从wrongBook补充
+    wrongBook.forEach(function(w) {
+        var ch = w.chapter;
+        if (ch && chapterStats[ch]) {
+            // 检查是否已统计过
+            var alreadyCounted = chapterStats[ch].wrong.some(function(e) {
+                return e.question === w.question;
+            });
+            if (!alreadyCounted) {
+                chapterStats[ch].total++;
+                chapterStats[ch].wrong.push(w);
+            }
+        }
+    });
+
+    // 计算总览
+    var totalQ = 0, totalC = 0, weakChapters = [];
+    var labels = [], rates = [], colors = [];
+
+    for (var ch = 1; ch <= 13; ch++) {
+        var s = chapterStats[ch];
+        totalQ += s.total;
+        totalC += s.correct;
+
+        var rate = s.total > 0 ? Math.round(s.correct / s.total * 100) : -1;
+        var chName = CHAPTER_NAMES[ch] || ('第' + ch + '章');
+
+        labels.push(chName);
+        if (rate >= 0) {
+            rates.push(rate);
+            if (rate < 60) {
+                colors.push('#e74a3b');
+                weakChapters.push({ch: ch, name: chName, rate: rate, total: s.total, correct: s.correct});
+            } else if (rate < 80) {
+                colors.push('#f6c23e');
+            } else {
+                colors.push('#1cc88a');
+            }
+        } else {
+            rates.push(0);
+            colors.push('#858796');
+        }
+    }
+
+    document.getElementById('totalQuestions').textContent = totalQ;
+    document.getElementById('totalCorrect').textContent = totalC;
+    document.getElementById('overallRate').textContent = totalQ > 0 ? Math.round(totalC / totalQ * 100) + '%' : '0%';
+    document.getElementById('weakCount').textContent = weakChapters.length;
+
+    // 柱状图
+    var ctx = document.getElementById('rateChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '正确率(%)',
+                data: rates,
+                backgroundColor: colors,
+                borderWidth: 1,
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {beginAtZero: true, max: 100, ticks: {callback: function(v){return v+'%';}}}
+            },
+            plugins: {
+                legend: {display: false},
+                tooltip: {callbacks: {label: function(ctx){return ctx.parsed.y + '%';}}}
+            }
+        }
+    });
+
+    // 章节详情表
+    var tbody = document.getElementById('chapterTable');
+    for (var ch = 1; ch <= 13; ch++) {
+        var s = chapterStats[ch];
+        var rate = s.total > 0 ? Math.round(s.correct / s.total * 100) : -1;
+        var chName = CHAPTER_NAMES[ch] || ('第' + ch + '章');
+
+        var status, badge;
+        if (rate < 0) {
+            status = '未练习';
+            badge = 'bg-secondary';
+        } else if (rate < 60) {
+            status = '⚠️ 薄弱';
+            badge = 'bg-danger';
+        } else if (rate < 80) {
+            status = '⚡ 待提高';
+            badge = 'bg-warning text-dark';
+        } else {
+            status = '✅ 良好';
+            badge = 'bg-success';
+        }
+
+        var tr = document.createElement('tr');
+        tr.className = rate >= 0 && rate < 60 ? 'table-danger' : '';
+        tr.innerHTML =
+            '<td><strong>' + chName + '</strong></td>' +
+            '<td>' + s.total + '</td>' +
+            '<td>' + s.correct + '</td>' +
+            '<td>' + (rate >= 0 ? rate + '%' : '-') + '</td>' +
+            '<td><span class="badge ' + badge + '">' + status + '</span></td>' +
+            '<td><small class="text-muted">' + (CHAPTER_ADVICE[ch] || '') + '</small></td>';
+        tbody.appendChild(tr);
+    }
+
+    // 学习建议
+    var sugDiv = document.getElementById('suggestions');
+    if (weakChapters.length > 0) {
+        var html = '<div class="alert alert-danger"><h6><i class="bi bi-exclamation-triangle"></i> 以下章节正确率低于60%，需要重点复习：</h6><ul class="mb-0">';
+        weakChapters.sort(function(a,b){return a.rate - b.rate;});
+        weakChapters.forEach(function(w) {
+            html += '<li><strong>' + w.name + '</strong>（正确率' + w.rate + '%，' + w.correct + '/' + w.total + '）— ' + CHAPTER_ADVICE[w.ch] + '</li>';
+        });
+        html += '</ul></div>';
+
+        // 推荐学习路径
+        html += '<div class="alert alert-info"><h6><i class="bi bi-signpost-2"></i> 推荐复习顺序：</h6><p>';
+        weakChapters.forEach(function(w, i) {
+            html += (i+1) + '. <a href="/chapters/' + w.ch + '">' + w.name + '</a>';
+            if (i < weakChapters.length - 1) html += ' → ';
+        });
+        html += '</p><p class="mb-0">建议配合<a href="/viz/">算法可视化</a>和<a href="/quiz/">章节测验</a>巩固。</p></div>';
+        sugDiv.innerHTML = html;
+    } else if (totalQ > 0) {
+        sugDiv.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle"></i> 太棒了！所有章节正确率都在60%以上。继续保持，可以通过<a href="/study/exam/">模拟考试</a>检验整体水平。</div>';
+    }
+
+    // 错题列表
+    var wrongDiv = document.getElementById('wrongList');
+    var allWrong = [];
+    for (var ch = 1; ch <= 13; ch++) {
+        chapterStats[ch].wrong.forEach(function(w) {
+            w.chapter = ch;
+            allWrong.push(w);
+        });
+    }
+    if (allWrong.length > 0) {
+        allWrong.slice(0, 20).forEach(function(w, i) {
+            var chName = CHAPTER_NAMES[w.chapter] || ('第' + w.chapter + '章');
+            var div = document.createElement('div');
+            div.className = 'border-bottom pb-2 mb-2';
+            div.innerHTML =
+                '<span class="badge bg-danger me-2">' + chName + '</span>' +
+                '<strong>Q' + (i+1) + '.</strong> ' + (w.question || w.q || '') +
+                (w.explanation ? '<div class="text-muted small mt-1"><i class="bi bi-lightbulb"></i> ' + w.explanation + '</div>' : '');
+            wrongDiv.appendChild(div);
+        });
+        if (allWrong.length > 20) {
+            var more = document.createElement('p');
+            more.className = 'text-muted';
+            more.textContent = '...还有' + (allWrong.length - 20) + '道错题';
+            wrongDiv.appendChild(more);
+        }
+    } else {
+        wrongDiv.innerHTML = '<p class="text-muted">暂无错题记录</p>';
+    }
+}
+
+function redoWrong() {
+    window.location.href = '/quiz/?mode=wrong';
+}
+
+analyzeData();
+</script>
+{% endblock %}

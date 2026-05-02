@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}关于{% endblock %}
+{% block page_title %}关于智学工坊{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <h4><i class="bi bi-mortarboard-fill text-primary"></i> 智学工坊</h4>
+                <p class="lead">机器学习辅助教学平台</p>
+                <hr>
+                <h5>平台特色</h5>
+                <ul>
+                    <li><strong>13章完整覆盖</strong>：从机器学习概述到期末考试，课程内容全覆盖</li>
+                    <li><strong>8种算法可视化</strong>：kNN、K-Means、线性回归、决策树、SVM、PCA、DBSCAN、朴素贝叶斯</li>
+                    <li><strong>4个综合案例</strong>：财政收入预测、电力负荷监测、航空公司客户价值、广电大数据营销</li>
+                    <li><strong>章节测验系统</strong>：每章配套选择题，即时反馈+详细解析</li>
+                    <li><strong>在线编程环境</strong>：浏览器内直接运行Python代码</li>
+                </ul>
+                <h5>课程信息</h5>
+                <table class="table">
+                    <tr><td>授课教师</td><td>姜荣昌 博士</td></tr>
+                    <tr><td>所属单位</td><td>江苏工程职业技术学院</td></tr>
+                    <tr><td>课时安排</td><td>13章 + 练习 + 期末考试</td></tr>
+                    <tr><td>技术栈</td><td>Flask + Bootstrap 5 + Chart.js + Canvas</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-mortarboard-fill display-1 text-primary"></i>
+                <h5 class="mt-3">智学工坊 v1.0</h5>
+                <p class="text-muted">机器学习辅助教学平台</p>
+                <p class="small text-muted">© 2026 姜荣昌 博士<br>江苏工程职业技术学院</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

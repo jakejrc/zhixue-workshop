@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.env
+node_modules/
+*.tmp
+test_*.py
+test_*.js
+tmp*.png

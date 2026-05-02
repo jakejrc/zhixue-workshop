@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}算法对比{% endblock %}
+{% block page_title %}算法对比卡片{% endblock %}
+
+{% block content %}
+<p class="text-muted mb-4">经典算法横向对比，帮你快速理解不同算法的本质区别和适用场景。</p>
+
+<div class="row g-4">
+{% for comp in comparisons %}
+    <div class="col-md-6 col-lg-4">
+        <a href="{{ url_for('compare.compare_detail', comp_id=comp.id) }}" class="text-decoration-none">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-dark">{{ comp.title }}</h6>
+                    <p class="card-text small text-muted mb-3">{{ comp.subtitle }}</p>
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge" style="background: {{ comp.left.color }};">{{ comp.left.name }}</span>
+                        <i class="bi bi-arrows-angle-expand text-muted"></i>
+                        <span class="badge" style="background: {{ comp.right.color }};">{{ comp.right.name }}</span>
+                    </div>
+                    <small class="text-muted">{{ comp.table|length }} 个对比维度</small>
+                </div>
+            </div>
+        </a>
+    </div>
+{% endfor %}
+</div>
+{% endblock %}

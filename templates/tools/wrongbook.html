@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}错题本{% endblock %}
+{% block page_title %}错题本{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <p class="text-muted mb-0">测验中答错的题目自动收集到这里，支持重做和移除。</p>
+    <span class="badge bg-danger fs-6" id="wrongCount">{{ wrong_answers|length }} 题</span>
+</div>
+
+{% if wrong_answers %}
+<div class="list-group" id="wrongList">
+    {% for key, item in wrong_answers.items() %}
+    <div class="list-group-item" id="wrong_{{ key }}">
+        <div class="d-flex align-items-start justify-content-between">
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-secondary">{{ item.quiz_title or '测验' }}</span>
+                    <span class="badge bg-warning text-dark">第{{ item.q_idx + 1 }}题</span>
+                </div>
+                <h6 class="mb-2">{{ item.question }}</h6>
+                <div class="mb-2">
+                    {% for opt in item.options %}
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        {% if loop.index0 == item.correct %}
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        {% elif loop.index0 == item.chosen %}
+                        <i class="bi bi-x-circle-fill text-danger"></i>
+                        {% else %}
+                        <i class="bi bi-circle text-muted"></i>
+                        {% endif %}
+                        <span {% if loop.index0 == item.correct %}class="text-success fw-bold"{% elif loop.index0 == item.chosen %}class="text-decoration-line-through text-danger"{% endif %}>{{ opt }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if item.explanation %}
+                <div class="alert alert-info py-2 mb-0">
+                    <i class="bi bi-lightbulb me-1"></i> {{ item.explanation }}
+                </div>
+                {% endif %}
+            </div>
+            <button class="btn btn-sm btn-outline-success ms-3" onclick="removeWrong('{{ key }}')" title="已掌握，移除">
+                <i class="bi bi-check-lg"></i> 已掌握
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="mt-3">
+    <button class="btn btn-outline-danger btn-sm" onclick="clearAll()">
+        <i class="bi bi-trash"></i> 清空错题本
+    </button>
+</div>
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-emoji-laughing display-1 text-success"></i>
+    <h5 class="mt-3 text-muted">错题本为空</h5>
+    <p class="text-muted">去做测验吧！答错的题目会自动出现在这里。</p>
+    <a href="{{ url_for('quiz.quiz_list') }}" class="btn btn-primary">
+        <i class="bi bi-pencil-square"></i> 去做测验
+    </a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function removeWrong(key) {
+    fetch('/tools/wrongbook/remove', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({quiz_id: key.split('_')[0], q_idx: parseInt(key.split('_')[1])})
+    }).then(r => r.json()).then(data => {
+        document.getElementById('wrong_' + key).remove();
+        document.getElementById('wrongCount').textContent = data.count + ' 题';
+        if (data.count === 0) location.reload();
+    });
+}
+
+function clearAll() {
+    if (!confirm('确定清空所有错题？')) return;
+    document.querySelectorAll('[id^=wrong_]').forEach(el => {
+        const key = el.id.replace('wrong_', '');
+        fetch('/tools/wrongbook/remove', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({quiz_id: key.split('_')[0], q_idx: parseInt(key.split('_')[1])})
+        });
+    });
+    setTimeout(() => location.reload(), 500);
+}
+</script>
+{% endblock %}

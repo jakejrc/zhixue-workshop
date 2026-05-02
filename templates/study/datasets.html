@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}数据集下载{% endblock %}
+{% block page_title %}数据集下载中心{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <p class="text-muted mb-4">课程案例和常用机器学习数据集。可用 <code>sklearn.datasets</code> 或 Kaggle 直接加载。</p>
+        <div class="row g-3">
+            {% for ds in datasets %}
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h6 class="card-title">
+                            <i class="bi bi-database text-primary me-2"></i>{{ ds.name }}
+                        </h6>
+                        <p class="text-muted small">{{ ds.desc }}</p>
+                        <div class="d-flex flex-wrap gap-2 mb-2">
+                            <span class="badge bg-info">{{ ds.samples }} 样本</span>
+                            <span class="badge bg-secondary">{{ ds.features }} 特征</span>
+                            <span class="badge bg-primary">{{ ds.task }}</span>
+                        </div>
+                        <div class="bg-light p-2 rounded small">
+                            <code>{{ ds.source }}</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 快速加载示例 -->
+        <div class="card mt-4">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-code-slash"></i> 快速加载示例</h6>
+            </div>
+            <div class="card-body">
+                <pre class="bg-dark text-light p-3 rounded"><code>from sklearn.datasets import load_iris, load_wine
+import pandas as pd
+
+# 加载Iris数据集
+iris = load_iris()
+df = pd.DataFrame(iris.data, columns=iris.feature_names)
+df['target'] = iris.target
+print(df.head())
+
+# 加载Wine数据集
+wine = load_wine()
+df = pd.DataFrame(wine.data, columns=wine.feature_names)
+df['target'] = wine.target</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}算法参数速查{% endblock %}
+{% block page_title %}算法参数速查表{% endblock %}
+
+{% block content %}
+<p class="text-muted mb-4">sklearn常用算法的参数速查，点击展开查看详细参数和调优建议。</p>
+
+<div class="row g-3 mb-4">
+    {% for algo in algorithms %}
+    <div class="col-auto">
+        <a href="#algo_{{ loop.index0 }}" class="btn btn-sm btn-outline-secondary" onclick="expandAlgo({{ loop.index0 }})">
+            <i class="bi {{ algo.icon }}" style="color:{{ algo.color }};"></i> {{ algo.name.split(' ')[0] }}
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
+{% for algo in algorithms %}
+<div class="card mb-3" id="algo_{{ loop.index0 }}">
+    <div class="card-header bg-white d-flex align-items-center" style="cursor:pointer;" onclick="toggleAlgo({{ loop.index0 }})">
+        <div style="width:2.5rem;height:2.5rem;background:{{ algo.color }}15;border-radius:0.5rem;display:flex;align-items:center;justify-content:center;margin-right:0.75rem;">
+            <i class="bi {{ algo.icon }}" style="color:{{ algo.color }};font-size:1.2rem;"></i>
+        </div>
+        <div class="flex-grow-1">
+            <h6 class="mb-0">{{ algo.name }}</h6>
+            <small class="text-muted">{{ algo.module }}</small>
+        </div>
+        <code class="me-3" style="font-size:0.8rem;color:#858796;">{{ algo.sketch }}</code>
+        <i class="bi bi-chevron-down" id="algo_icon_{{ loop.index0 }}"></i>
+    </div>
+    <div class="card-body algo-body" id="algo_body_{{ loop.index0 }}" style="display:none;">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-3">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:180px;">参数</th>
+                        <th style="width:80px;">类型</th>
+                        <th style="width:80px;">默认值</th>
+                        <th>说明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in algo.params %}
+                    <tr>
+                        <td><code>{{ p.name }}</code></td>
+                        <td><span class="badge bg-light text-dark">{{ p.type }}</span></td>
+                        <td><code class="text-primary">{{ p.default }}</code></td>
+                        <td>{{ p.desc }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="alert alert-info mb-0">
+            <i class="bi bi-lightbulb me-2"></i><strong>调优建议：</strong>{{ algo.tips }}
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<button class="btn btn-outline-primary btn-sm" onclick="document.querySelectorAll('.algo-body').forEach(e=>e.style.display='block');document.querySelectorAll('[id^=algo_icon_]').forEach(e=>e.className='bi bi-chevron-up');">
+    <i class="bi bi-arrows-expand"></i> 展开全部
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleAlgo(idx) {
+    const body = document.getElementById('algo_body_' + idx);
+    const icon = document.getElementById('algo_icon_' + idx);
+    body.style.display = body.style.display === 'none' ? 'block' : 'none';
+    icon.className = body.style.display === 'none' ? 'bi bi-chevron-down' : 'bi bi-chevron-up';
+}
+function expandAlgo(idx) {
+    const body = document.getElementById('algo_body_' + idx);
+    const icon = document.getElementById('algo_icon_' + idx);
+    body.style.display = 'block';
+    icon.className = 'bi bi-chevron-up';
+    document.getElementById('algo_' + idx).scrollIntoView({behavior:'smooth'});
+}
+</script>
+{% endblock %}

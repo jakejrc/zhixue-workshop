@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}第{{ chapter_id }}章 复习卡片{% endblock %}
+{% block page_title %}{{ data.title }} - 复习卡片{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- 进度 -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="badge bg-primary fs-6" id="cardProgress">1 / {{ data.cards|length }}</span>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm" onclick="shuffleCards()">
+                    <i class="bi bi-shuffle"></i> 随机顺序
+                </button>
+            </div>
+        </div>
+
+        <!-- 翻转卡片 -->
+        <div class="flashcard-container mb-4">
+            <div class="flashcard" id="flashcard" onclick="flipCard()">
+                <div class="flashcard-front" id="cardFront">
+                    <div class="text-center">
+                        <div class="text-muted small mb-3">❓ 问题</div>
+                        <h4 id="frontText"></h4>
+                    </div>
+                </div>
+                <div class="flashcard-back" id="cardBack">
+                    <div class="text-center">
+                        <div class="text-muted small mb-3">✅ 答案</div>
+                        <p id="backText" style="white-space: pre-line;"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-center text-muted mb-3">点击卡片翻转 · 按空格键翻转 · ← → 切换</p>
+
+        <!-- 操作按钮 -->
+        <div class="d-flex justify-content-center gap-3 mb-4">
+            <button class="btn btn-outline-secondary btn-lg" onclick="cardNav(-1)">
+                <i class="bi bi-arrow-left"></i> 上一张
+            </button>
+            <button class="btn btn-success btn-lg" onclick="markKnown()">
+                <i class="bi bi-check-lg"></i> 记住了
+            </button>
+            <button class="btn btn-warning btn-lg" onclick="markUnknown()">
+                <i class="bi bi-arrow-repeat"></i> 再看看
+            </button>
+            <button class="btn btn-outline-primary btn-lg" onclick="cardNav(1)">
+                下一张 <i class="bi bi-arrow-right"></i>
+            </button>
+        </div>
+
+        <!-- 掌握进度 -->
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>掌握进度</span>
+                    <span id="masteryText">0 / {{ data.cards|length }}</span>
+                </div>
+                <div class="progress progress-thin">
+                    <div class="progress-bar bg-success" id="masteryBar" style="width: 0%"></div>
+                </div>
+                <div class="d-flex gap-2 mt-2 small">
+                    <span class="text-success">✅ <span id="knownCount">0</span> 已掌握</span>
+                    <span class="text-warning">🔄 <span id="unknownCount">0</span> 再看看</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 返回 -->
+        <div class="text-center mt-3">
+            <a href="{{ url_for('study.flashcard_list') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> 返回章节列表
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.flashcard-container { perspective: 1000px; }
+.flashcard {
+    width: 100%; min-height: 300px; cursor: pointer;
+    position: relative; transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+.flashcard.flipped { transform: rotateY(180deg); }
+.flashcard-front, .flashcard-back {
+    position: absolute; width: 100%; min-height: 300px;
+    backface-visibility: hidden; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+.flashcard-front { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+.flashcard-back { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; transform: rotateY(180deg); }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const cards = {{ data.cards|tojson }};
+let currentCard = 0;
+let known = new Set();
+let unknown = new Set();
+
+function showCard(index) {
+    const card = cards[index];
+    document.getElementById('frontText').textContent = card.front;
+    document.getElementById('backText').textContent = card.back;
+    document.getElementById('flashcard').classList.remove('flipped');
+    document.getElementById('cardProgress').textContent = (index + 1) + ' / ' + cards.length;
+}
+
+function flipCard() {
+    document.getElementById('flashcard').classList.toggle('flipped');
+}
+
+function cardNav(dir) {
+    currentCard = Math.max(0, Math.min(cards.length - 1, currentCard + dir));
+    showCard(currentCard);
+}
+
+function markKnown() {
+    known.add(currentCard);
+    unknown.delete(currentCard);
+    updateMastery();
+    if (currentCard < cards.length - 1) cardNav(1);
+}
+
+function markUnknown() {
+    unknown.add(currentCard);
+    known.delete(currentCard);
+    updateMastery();
+    if (currentCard < cards.length - 1) cardNav(1);
+}
+
+function updateMastery() {
+    document.getElementById('knownCount').textContent = known.size;
+    document.getElementById('unknownCount').textContent = unknown.size;
+    document.getElementById('masteryText').textContent = known.size + ' / ' + cards.length;
+    document.getElementById('masteryBar').style.width = (known.size / cards.length * 100) + '%';
+}
+
+function shuffleCards() {
+    for (let i = cards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cards[i], cards[j]] = [cards[j], cards[i]];
+    }
+    currentCard = 0;
+    showCard(0);
+}
+
+// 键盘快捷键
+document.addEventListener('keydown', e => {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipCard(); }
+    if (e.key === 'ArrowLeft') cardNav(-1);
+    if (e.key === 'ArrowRight') cardNav(1);
+    if (e.key === '1') markKnown();
+    if (e.key === '2') markUnknown();
+});
+
+showCard(0);
+</script>
+{% endblock %}

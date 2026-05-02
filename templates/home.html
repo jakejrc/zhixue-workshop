@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+{% block title %}首页{% endblock %}
+{% block page_title %}首页{% endblock %}
+
+{% block content %}
+<!-- Hero区域 -->
+<div class="hero-section text-center">
+    <h1><i class="bi bi-mortarboard-fill"></i> 智学工坊</h1>
+    <p class="lead mb-4">机器学习辅助教学平台 · 13章完整覆盖 · 交互式学习</p>
+    <div class="d-flex justify-content-center gap-3 flex-wrap">
+        <a href="{{ url_for('chapters.chapter_list') }}" class="btn btn-light btn-lg">
+            <i class="bi bi-book"></i> 开始学习
+        </a>
+        <a href="{{ url_for('knowledge.graph') }}" class="btn btn-outline-light btn-lg">
+            <i class="bi bi-diagram-3"></i> 知识图谱
+        </a>
+        <a href="{{ url_for('viz.viz_list') }}" class="btn btn-outline-light btn-lg">
+            <i class="bi bi-bar-chart-line"></i> 算法可视化
+        </a>
+        <a href="{{ url_for('quiz.quiz_list') }}" class="btn btn-outline-light btn-lg">
+            <i class="bi bi-pencil-square"></i> 章节测验
+        </a>
+    </div>
+</div>
+
+<!-- 统计卡片 -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card" style="--stat-color: #4e73df;">
+            <div class="card-body">
+                <div class="stat-value">13</div>
+                <div class="text-muted">课程章节</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" style="--stat-color: #1cc88a;">
+            <div class="card-body">
+                <div class="stat-value">20+</div>
+                <div class="text-muted">核心算法</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" style="--stat-color: #f6c23e;">
+            <div class="card-body">
+                <div class="stat-value">4</div>
+                <div class="text-muted">综合案例</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" style="--stat-color: #e74a3b;">
+            <div class="card-body">
+                <div class="stat-value">8</div>
+                <div class="text-muted">交互式可视化</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" style="--stat-color: #36b9cc;">
+            <div class="card-body">
+                <div class="stat-value">5</div>
+                <div class="text-muted">算法对比卡片</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" style="--stat-color: #6f42c1;">
+            <div class="card-body">
+                <div class="stat-value">6</div>
+                <div class="text-muted">公式推导</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" style="--stat-color: #d63384;">
+            <div class="card-body">
+                <div class="stat-value">50+</div>
+                <div class="text-muted">术语词汇</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" style="--stat-color: #0dcaf0;">
+            <div class="card-body">
+                <div class="stat-value">8</div>
+                <div class="text-muted">数据集</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" style="--stat-color: #6610f2;">
+            <div class="card-body">
+                <div class="stat-value">6</div>
+                <div class="text-muted">学习工具</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 快速入口 -->
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-book"></i> 课程章节</h5>
+            </div>
+            <div class="card-body">
+                <p>涵盖机器学习概述、数据准备、特征工程、有监督学习、无监督学习、智能推荐等13章完整内容。</p>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for i in range(1, 8) %}
+                    <a href="{{ url_for('chapters.chapter_detail', chapter_id=i) }}" class="btn btn-sm btn-outline-primary">第{{i}}章</a>
+                    {% endfor %}
+                    <a href="{{ url_for('chapters.chapter_list') }}" class="btn btn-sm btn-outline-secondary">查看全部 →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header" style="background: #1cc88a; color: white;">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> 算法可视化</h5>
+            </div>
+            <div class="card-body">
+                <p>通过交互式动画直观理解算法原理：kNN分类、K-Means聚类、线性回归、决策树、SVM、PCA等8种算法。</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('viz.viz_detail', algo_key='knn') }}" class="btn btn-sm btn-outline-success">kNN</a>
+                    <a href="{{ url_for('viz.viz_detail', algo_key='kmeans') }}" class="btn btn-sm btn-outline-success">K-Means</a>
+                    <a href="{{ url_for('viz.viz_detail', algo_key='linear_regression') }}" class="btn btn-sm btn-outline-success">线性回归</a>
+                    <a href="{{ url_for('viz.viz_detail', algo_key='svm') }}" class="btn btn-sm btn-outline-success">SVM</a>
+                    <a href="{{ url_for('viz.viz_detail', algo_key='pca') }}" class="btn btn-sm btn-outline-success">PCA</a>
+                    <a href="{{ url_for('viz.viz_list') }}" class="btn btn-sm btn-outline-secondary">查看全部 →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header" style="background: #f6c23e; color: #333;">
+                <h5 class="mb-0"><i class="bi bi-clipboard-data"></i> 综合案例</h5>
+            </div>
+            <div class="card-body">
+                <p>4个真实业务案例全流程指导：财政收入预测、电力负荷监测、航空公司客户价值、广电大数据营销。</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('cases.case_detail', case_key='fiscal_revenue') }}" class="btn btn-sm btn-outline-warning">财政收入</a>
+                    <a href="{{ url_for('cases.case_detail', case_key='power_monitoring') }}" class="btn btn-sm btn-outline-warning">电力监测</a>
+                    <a href="{{ url_for('cases.case_detail', case_key='airline') }}" class="btn btn-sm btn-outline-warning">航空公司</a>
+                    <a href="{{ url_for('cases.case_detail', case_key='broadcasting') }}" class="btn btn-sm btn-outline-warning">广电推荐</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header" style="background: #e74a3b; color: white;">
+                <h5 class="mb-0"><i class="bi bi-pencil-square"></i> 章节测验</h5>
+            </div>
+            <div class="card-body">
+                <p>每章配套5-6道选择题，即时反馈+详细解析。支持期末模拟考试，还原大数据2班/3班考题配置。</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('quiz.quiz_list') }}" class="btn btn-sm btn-outline-danger">开始测验</a>
+                    <a href="{{ url_for('quiz.quiz_detail', chapter_id=13) }}" class="btn btn-sm btn-outline-danger">期末模拟</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header" style="background: #36b9cc; color: white;">
+                <h5 class="mb-0"><i class="bi bi-diagram-3"></i> 知识图谱</h5>
+            </div>
+            <div class="card-body">
+                <p>13章课程的知识依赖关系可视化，拖拽节点调整布局，点击跳转到对应章节。直观理解知识脉络。</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('knowledge.graph') }}" class="btn btn-sm btn-outline-info">查看图谱</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header" style="background: #6f42c1; color: white;">
+                <h5 class="mb-0"><i class="bi bi-arrow-left-right"></i> 算法对比</h5>
+            </div>
+            <div class="card-body">
+                <p>5组经典算法横向对比：Bagging vs Boosting、K-Means vs DBSCAN、决策树 vs SVM等，快速理解本质区别。</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('compare.compare_list') }}" class="btn btn-sm btn-outline-secondary">查看对比</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header" style="background: #f6c23e; color: #333;">
+                <h5 class="mb-0"><i class="bi bi-calculator"></i> 公式推导</h5>
+            </div>
+            <div class="card-body">
+                <p>6个核心公式逐步推导：最小二乘法、信息熵、Sigmoid、PCA、KNN距离、SVM间隔。点击展开每一步。</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('formula.formula_list') }}" class="btn btn-sm btn-outline-warning">查看公式</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header" style="background: #d63384; color: white;">
+                <h5 class="mb-0"><i class="bi bi-mortarboard"></i> 模拟考试</h5>
+            </div>
+            <div class="card-body">
+                <p>13章题库随机抽题，可选20/30/50题，限时作答，交卷即时出分+章节得分分析。</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('study.exam_home') }}" class="btn btn-sm btn-outline-danger">开始考试</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header" style="background: #0dcaf0; color: #333;">
+                <h5 class="mb-0"><i class="bi bi-card-heading"></i> 复习卡片</h5>
+            </div>
+            <div class="card-body">
+                <p>每章5-8张翻转卡片，正面问题背面答案，间隔重复巩固记忆。键盘快捷键操作。</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('study.flashcard_list') }}" class="btn btn-sm btn-outline-info">开始复习</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header" style="background: #198754; color: white;">
+                <h5 class="mb-0"><i class="bi bi-journal-text"></i> 课程笔记</h5>
+            </div>
+            <div class="card-body">
+                <p>按章节记录学习笔记，支持导入导出备份。浏览器本地存储，随时查看。</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('study.notes_page') }}" class="btn btn-sm btn-outline-success">写笔记</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header" style="background: #ffc107; color: #333;">
+                <h5 class="mb-0"><i class="bi bi-database"></i> 数据集 & 环境指南</h5>
+            </div>
+            <div class="card-body">
+                <p>8个常用数据集下载 + Python/Anaconda/Jupyter环境安装图文指南，新手零基础也能上手。</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('study.dataset_list') }}" class="btn btn-sm btn-outline-warning">数据集</a>
+                    <a href="{{ url_for('study.python_guide') }}" class="btn btn-sm btn-outline-warning">环境指南</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 知识体系总览 -->
+<div class="card mt-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-diagram-3"></i> 知识体系总览</h5>
+    </div>
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-md-2">
+                <div class="p-3 rounded" style="background: rgba(78,115,223,0.1);">
+                    <i class="bi bi-book fs-2 text-primary"></i>
+                    <h6 class="mt-2">理论基础</h6>
+                    <small class="text-muted">第1-3章</small>
+                </div>
+            </div>
+            <div class="col-md-1 d-flex align-items-center justify-content-center">
+                <i class="bi bi-arrow-right fs-3 text-muted"></i>
+            </div>
+            <div class="col-md-2">
+                <div class="p-3 rounded" style="background: rgba(231,74,59,0.1);">
+                    <i class="bi bi-diagram-3 fs-2" style="color: #e74a3b;"></i>
+                    <h6 class="mt-2">有监督学习</h6>
+                    <small class="text-muted">第4章</small>
+                </div>
+            </div>
+            <div class="col-md-1 d-flex align-items-center justify-content-center">
+                <i class="bi bi-arrow-right fs-3 text-muted"></i>
+            </div>
+            <div class="col-md-2">
+                <div class="p-3 rounded" style="background: rgba(54,185,204,0.1);">
+                    <i class="bi bi-collection fs-2" style="color: #36b9cc;"></i>
+                    <h6 class="mt-2">无监督学习</h6>
+                    <small class="text-muted">第5章</small>
+                </div>
+            </div>
+            <div class="col-md-1 d-flex align-items-center justify-content-center">
+                <i class="bi bi-arrow-right fs-3 text-muted"></i>
+            </div>
+            <div class="col-md-2">
+                <div class="p-3 rounded" style="background: rgba(253,126,20,0.1);">
+                    <i class="bi bi-heart fs-2" style="color: #fd7e14;"></i>
+                    <h6 class="mt-2">推荐系统</h6>
+                    <small class="text-muted">第6章</small>
+                </div>
+            </div>
+            <div class="col-md-1 d-flex align-items-center justify-content-center">
+                <i class="bi bi-arrow-right fs-3 text-muted"></i>
+            </div>
+            <div class="col-md-2">
+                <div class="p-3 rounded" style="background: rgba(25,135,84,0.1);">
+                    <i class="bi bi-award fs-2" style="color: #198754;"></i>
+                    <h6 class="mt-2">案例与考试</h6>
+                    <small class="text-muted">第7-13章</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新功能入口 -->
+<h4 class="mb-3 mt-4">🧠 智能分析工具</h4>
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100 border-primary">
+            <div class="card-body text-center">
+                <i class="bi bi-bar-chart-steps text-primary" style="font-size:2.5rem;"></i>
+                <h5 class="mt-3">算法实战对比器</h5>
+                <p class="text-muted">同一数据集跑不同算法，对比准确率、训练时间、决策边界</p>
+                <a href="{{ url_for('compare_tool.compare_home') }}" class="btn btn-primary">开始对比</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-danger">
+            <div class="card-body text-center">
+                <i class="bi bi-clipboard-data text-danger" style="font-size:2.5rem;"></i>
+                <h5 class="mt-3">错题薄弱点分析</h5>
+                <p class="text-muted">自动分析测验数据，找出薄弱章节，个性化复习建议</p>
+                <a href="{{ url_for('analyzer.analyzer_home') }}" class="btn btn-danger">查看分析</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-success">
+            <div class="card-body text-center">
+                <i class="bi bi-signpost-2 text-success" style="font-size:2.5rem;"></i>
+                <h5 class="mt-3">学习路径推荐</h5>
+                <p class="text-muted">三条学习路线+知识依赖图+进度追踪，科学规划学习</p>
+                <a href="{{ url_for('path.path_home') }}" class="btn btn-success">选择路线</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

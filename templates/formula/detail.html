@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}{{ formula.title }}{% endblock %}
+{% block page_title %}{{ formula.title }}{% endblock %}
+
+{% block content %}
+<p class="text-muted mb-2">所属章节：{{ formula.chapter }} · 共 {{ formula.steps|length }} 步</p>
+<p class="mb-4">点击每一步展开查看详细解释。</p>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- 推导步骤 -->
+        <div class="formula-steps">
+            {% for step in formula.steps %}
+            <div class="card mb-3 formula-step" id="step_{{ loop.index0 }}">
+                <div class="card-header bg-white d-flex align-items-center" style="cursor:pointer;" onclick="toggleStep({{ loop.index0 }})">
+                    <span class="badge bg-primary me-3" style="width:2rem; height:2rem; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+                        {{ loop.index }}
+                    </span>
+                    <h6 class="mb-0 flex-grow-1">{{ step.title }}</h6>
+                    <i class="bi bi-chevron-down" id="icon_{{ loop.index0 }}"></i>
+                </div>
+                <div class="card-body step-body" id="body_{{ loop.index0 }}" style="display:none;">
+                    <div class="formula-box text-center mb-3" style="font-size: 1.2rem;">
+                        {{ step.formula }}
+                    </div>
+                    <div class="key-point">
+                        <i class="bi bi-lightbulb text-warning me-2"></i>
+                        <strong>直觉理解：</strong>{{ step.explain }}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 一键展开/折叠 -->
+        <div class="d-flex gap-2 mb-4">
+            <button class="btn btn-outline-primary btn-sm" onclick="expandAll()">
+                <i class="bi bi-arrows-expand"></i> 展开全部
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="collapseAll()">
+                <i class="bi bi-arrows-collapse"></i> 折叠全部
+            </button>
+        </div>
+    </div>
+
+    <!-- 侧边栏 -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-list-ol"></i> 推导步骤</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for step in formula.steps %}
+                    <a href="#" class="list-group-item list-group-item-action d-flex align-items-center gap-2" onclick="document.getElementById('step_{{ loop.index0 }}').scrollIntoView({behavior:'smooth'}); toggleStep({{ loop.index0 }}); return false;">
+                        <span class="badge bg-primary rounded-pill">{{ loop.index }}</span>
+                        <small>{{ step.title }}</small>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-calculator"></i> 其他公式</h6>
+            </div>
+            <div class="card-body">
+                {% for other in all_formulas %}
+                {% if other.id != formula.id %}
+                <a href="{{ url_for('formula.formula_detail', formula_id=other.id) }}" class="text-decoration-none d-block mb-2">
+                    <i class="bi bi-arrow-right-short"></i> {{ other.title }}
+                </a>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleStep(idx) {
+    const body = document.getElementById('body_' + idx);
+    const icon = document.getElementById('icon_' + idx);
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+        icon.className = 'bi bi-chevron-up';
+    } else {
+        body.style.display = 'none';
+        icon.className = 'bi bi-chevron-down';
+    }
+}
+function expandAll() {
+    document.querySelectorAll('.step-body').forEach((el, i) => {
+        el.style.display = 'block';
+        document.getElementById('icon_' + i).className = 'bi bi-chevron-up';
+    });
+}
+function collapseAll() {
+    document.querySelectorAll('.step-body').forEach((el, i) => {
+        el.style.display = 'none';
+        document.getElementById('icon_' + i).className = 'bi bi-chevron-down';
+    });
+}
+// 默认展开第一步
+toggleStep(0);
+</script>
+{% endblock %}

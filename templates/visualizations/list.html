@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}算法可视化{% endblock %}
+{% block page_title %}算法可视化{% endblock %}
+
+{% block content %}
+<p class="text-muted mb-4">通过交互式动画直观理解机器学习算法的工作原理。点击下方算法卡片开始探索。</p>
+
+<div class="row g-4">
+{% for key, algo in algorithms.items() %}
+    <div class="col-md-6 col-lg-4">
+        <a href="{{ url_for('viz.viz_detail', algo_key=key) }}" class="text-decoration-none">
+            <div class="card algo-card h-100" style="--algo-color: {% if algo.category == 'supervised' %}#4e73df{% else %}#1cc88a{% endif %};">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div class="algo-icon" style="background: {% if algo.category == 'supervised' %}#4e73df{% else %}#1cc88a{% endif %};">
+                            <i class="bi {% if algo.category == 'supervised' %}bi-diagram-3{% else %}bi-collection{% endif %}"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 text-dark">{{ algo.name }}</h6>
+                            <small class="text-muted">第{{ algo.chapter }}章 · {{ '有监督' if algo.category == 'supervised' else '无监督' }}</small>
+                        </div>
+                    </div>
+                    <p class="card-text small text-muted">{{ algo.description }}</p>
+                    <div class="formula-box" style="font-size: 0.85rem; padding: 0.5rem;">
+                        {{ algo.formula }}
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+{% endfor %}
+</div>
+{% endblock %}

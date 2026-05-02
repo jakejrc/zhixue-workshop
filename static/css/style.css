@@ -1,0 +1,395 @@
+/* 智学工坊 - 全局样式 */
+:root {
+    --primary: #4e73df;
+    --primary-dark: #2e59d9;
+    --secondary: #858796;
+    --success: #1cc88a;
+    --info: #36b9cc;
+    --warning: #f6c23e;
+    --danger: #e74a3b;
+    --light: #f8f9fc;
+    --dark: #5a5c69;
+    --sidebar-width: 250px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+    background: #f8f9fc;
+    margin: 0;
+    padding: 0;
+}
+
+/* 侧边栏 */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: linear-gradient(180deg, #4e73df 0%, #224abe 100%);
+    color: white;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s;
+}
+
+.sidebar .brand {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+
+.sidebar .brand h4 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.3rem;
+}
+
+.sidebar .brand small {
+    opacity: 0.8;
+    font-size: 0.75rem;
+}
+
+.sidebar .nav-link {
+    color: rgba(255,255,255,0.8);
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+    color: white;
+    background: rgba(255,255,255,0.1);
+    border-left-color: white;
+}
+
+.sidebar .nav-link i {
+    font-size: 1.1rem;
+    width: 1.5rem;
+    text-align: center;
+}
+
+.sidebar .nav-section {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.6;
+    margin-top: 0.5rem;
+}
+
+/* 主内容区 */
+.main-content {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+}
+
+.top-bar {
+    background: white;
+    padding: 1rem 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.content-area {
+    padding: 1.5rem;
+}
+
+/* 卡片 */
+.card {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    border-radius: 0.75rem 0.75rem 0 0 !important;
+}
+
+/* 渐变卡片 */
+.gradient-card {
+    background: linear-gradient(135deg, var(--card-color, #4e73df) 0%, var(--card-color-dark, #224abe) 100%);
+    color: white;
+    border: none;
+}
+
+.gradient-card:hover {
+    color: white;
+}
+
+/* 统计卡片 */
+.stat-card {
+    border-left: 4px solid var(--stat-color, #4e73df);
+}
+
+.stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--stat-color, #4e73df);
+}
+
+/* 章节卡片 */
+.chapter-card {
+    border-left: 4px solid var(--chapter-color, #4e73df);
+    cursor: pointer;
+}
+
+.chapter-card .chapter-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--chapter-color, #4e73df);
+    color: white;
+    font-size: 1.2rem;
+}
+
+/* 可视化区域 */
+.viz-container {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.viz-canvas {
+    width: 100%;
+    max-width: 600px;
+    height: 400px;
+    border: 1px solid #e3e6f0;
+    border-radius: 0.5rem;
+    cursor: crosshair;
+    background: #fafbfe;
+}
+
+.viz-controls {
+    background: #f8f9fc;
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.viz-controls label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--dark);
+}
+
+/* 测验样式 */
+.quiz-option {
+    padding: 1rem 1.25rem;
+    border: 2px solid #e3e6f0;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 0.5rem;
+}
+
+.quiz-option:hover {
+    border-color: var(--primary);
+    background: #f8f9fc;
+}
+
+.quiz-option.selected {
+    border-color: var(--primary);
+    background: rgba(78,115,223,0.05);
+}
+
+.quiz-option.correct {
+    border-color: var(--success);
+    background: rgba(28,200,138,0.1);
+}
+
+.quiz-option.wrong {
+    border-color: var(--danger);
+    background: rgba(231,74,59,0.1);
+}
+
+.quiz-feedback {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-top: 1rem;
+}
+
+.quiz-feedback.correct {
+    background: rgba(28,200,138,0.1);
+    border-left: 4px solid var(--success);
+}
+
+.quiz-feedback.wrong {
+    background: rgba(231,74,59,0.1);
+    border-left: 4px solid var(--danger);
+}
+
+/* 案例步骤 */
+.case-step {
+    position: relative;
+    padding-left: 3rem;
+    margin-bottom: 2rem;
+}
+
+.case-step::before {
+    content: attr(data-step);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 2rem;
+    height: 2rem;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.case-step::after {
+    content: '';
+    position: absolute;
+    left: 0.95rem;
+    top: 2rem;
+    width: 2px;
+    height: calc(100% - 1rem);
+    background: #e3e6f0;
+}
+
+.case-step:last-child::after {
+    display: none;
+}
+
+/* 代码块 */
+.code-block {
+    background: #2d3748;
+    color: #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.85rem;
+    overflow-x: auto;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* 进度条 */
+.progress-thin {
+    height: 0.5rem;
+    border-radius: 0.25rem;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    .main-content {
+        margin-left: 0;
+    }
+    .top-bar .menu-toggle {
+        display: block;
+    }
+}
+
+/* 动画 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0););
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* 标签 */
+.tag {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(78,115,223,0.1);
+    color: var(--primary);
+}
+
+/* 首页hero */
+.hero-section {
+    background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+    color: white;
+    border-radius: 1rem;
+    padding: 3rem 2rem;
+    margin-bottom: 2rem;
+}
+
+.hero-section h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+/* 算法卡片 */
+.algo-card {
+    border: none;
+    border-top: 4px solid var(--algo-color, #4e73df);
+    border-radius: 0 0 0.75rem 0.75rem;
+}
+
+.algo-card .algo-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--algo-color, #4e73df);
+    color: white;
+    font-size: 1.2rem;
+}
+
+/* 公式 */
+.formula-box {
+    background: #f0f4ff;
+    border: 1px solid #d0d9f0;
+    border-radius: 0.5rem;
+    padding: 1rem 1.5rem;
+    font-family: 'Consolas', monospace;
+    font-size: 1.1rem;
+    text-align: center;
+    color: var(--primary-dark);
+}
+
+/* 知识点列表 */
+.key-point {
+    padding: 0.75rem 1rem;
+    border-left: 3px solid var(--primary);
+    background: #f8f9fc;
+    margin-bottom: 0.5rem;
+    border-radius: 0 0.25rem 0.25rem 0;
+}
+
+.key-point strong {
+    color: var(--primary);
+}

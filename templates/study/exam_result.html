@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}考试结果{% endblock %}
+{% block page_title %}考试结果{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- 成绩卡片 -->
+        <div class="card mb-4 text-center">
+            <div class="card-body py-5">
+                {% if score >= 90 %}
+                <h3>🎉 优秀！</h3>
+                <div class="display-1 fw-bold text-success">{{ score }}分</div>
+                {% elif score >= 80 %}
+                <h3>👏 良好！</h3>
+                <div class="display-1 fw-bold text-primary">{{ score }}分</div>
+                {% elif score >= 60 %}
+                <h3>👍 及格</h3>
+                <div class="display-1 fw-bold text-warning">{{ score }}分</div>
+                {% else %}
+                <h3>💪 继续加油</h3>
+                <div class="display-1 fw-bold text-danger">{{ score }}分</div>
+                {% endif %}
+                <p class="text-muted mt-2">答对 {{ correct }}/{{ total }} 题</p>
+                <div class="d-flex justify-content-center gap-3 mt-3">
+                    <a href="/study/exam/" class="btn btn-primary"><i class="bi bi-arrow-repeat"></i> 再考一次</a>
+                    <a href="/study/exam/" class="btn btn-outline-secondary"><i class="bi bi-house"></i> 返回</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 错题分析 -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-bar-chart"></i> 章节得分分析</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="chapterChart" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- 逐题详情 -->
+        <div class="card">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-list-check"></i> 逐题详情</h6>
+            </div>
+            <div class="card-body">
+                {% for d in details %}
+                <div class="border-bottom py-3 {% if d.is_correct %}border-start border-3 border-success{% else %}border-start border-3 border-danger{% endif %} ps-3 mb-3">
+                    <div class="d-flex align-items-start gap-2 mb-2">
+                        <span class="badge {% if d.is_correct %}bg-success{% else %}bg-danger{% endif %}">{{ loop.index }}</span>
+                        <span class="badge bg-secondary">第{{ d.chapter }}章</span>
+                        <span class="flex-grow-1">{{ d.question }}</span>
+                    </div>
+                    {% for opt in d.options %}
+                    <div class="ms-4 mb-1">
+                        {% if loop.index0 == d.correct_answer %}
+                        <i class="bi bi-check-circle-fill text-success"></i>
+                        {% elif loop.index0 == d.user_answer and not d.is_correct %}
+                        <i class="bi bi-x-circle-fill text-danger"></i>
+                        {% else %}
+                        <i class="bi bi-circle text-muted"></i>
+                        {% endif %}
+                        <span {% if loop.index0 == d.correct_answer %}class="text-success fw-bold"{% elif loop.index0 == d.user_answer and not d.is_correct %}class="text-decoration-line-through text-danger"{% endif %}>
+                            {{ ['A','B','C','D'][loop.index0] }}. {{ opt }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                    {% if d.explanation %}
+                    <div class="alert alert-info py-2 mt-2 mb-0 small">
+                        <i class="bi bi-lightbulb"></i> {{ d.explanation }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 章节得分分析图
+const details = {{ details|tojson }};
+const chapterStats = {};
+details.forEach(d => {
+    if (!chapterStats[d.chapter]) chapterStats[d.chapter] = {correct: 0, total: 0};
+    chapterStats[d.chapter].total++;
+    if (d.is_correct) chapterStats[d.chapter].correct++;
+});
+const labels = Object.keys(chapterStats).map(c => '第' + c + '章');
+const rates = Object.values(chapterStats).map(s => Math.round(s.correct / s.total * 100));
+
+new Chart(document.getElementById('chapterChart'), {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: '正确率 (%)',
+            data: rates,
+            backgroundColor: rates.map(r => r >= 80 ? '#1cc88a' : r >= 60 ? '#f6c23e' : '#e74a3b'),
+            borderRadius: 4
+        }]
+    },
+    options: {
+        scales: { y: { beginAtZero: true, max: 100 } },
+        plugins: { legend: { display: false } }
+    }
+});
+</script>
+{% endblock %}

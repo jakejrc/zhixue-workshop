@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}知识图谱{% endblock %}
+{% block page_title %}知识图谱{% endblock %}
+
+{% block content %}
+<p class="text-muted mb-3">13章课程的知识依赖关系，点击节点跳转到对应章节。拖拽节点调整布局。</p>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div id="graphContainer" style="width:100%; height:520px; background:#fafbfe; border-radius:0.5rem; position:relative;">
+            <svg id="graphSvg" width="100%" height="100%"></svg>
+        </div>
+    </div>
+</div>
+
+<!-- 图例 -->
+<div class="row g-3 mt-3">
+    <div class="col-auto">
+        <span class="badge" style="background:#4e73df;">■</span> 基础理论
+    </div>
+    <div class="col-auto">
+        <span class="badge" style="background:#1cc88a;">■</span> 监督学习
+    </div>
+    <div class="col-auto">
+        <span class="badge" style="background:#36b9cc;">■</span> 无监督学习
+    </div>
+    <div class="col-auto">
+        <span class="badge" style="background:#f6c23e;">■</span> 进阶方法
+    </div>
+    <div class="col-auto">
+        <span class="badge" style="background:#e74a3b;">■</span> 综合案例
+    </div>
+</div>
+
+<!-- 学习路径 -->
+<div class="card mt-4">
+    <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-signpost-2"></i> 推荐学习路径</h6></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="p-3 border rounded">
+                    <h6 class="text-primary">🌱 入门路径</h6>
+                    <small class="text-muted">第1章 → 第2章 → 第3章 → 第4章 → 第6章</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 border rounded">
+                    <h6 class="text-success">🌿 进阶路径</h6>
+                    <small class="text-muted">第5章 → 第7章 → 第8章 → 第9章 → 第11章</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 border rounded">
+                    <h6 class="text-info">🌳 实战路径</h6>
+                    <small class="text-muted">第10章 → 第12章 → 第13章 → 案例14~17</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+(function() {
+    const container = document.getElementById('graphContainer');
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+
+    const nodes = {{ nodes | tojson }};
+    const deps = {{ deps | tojson }};
+
+    // 构建links
+    const links = deps.map(d => ({source: d[0], target: d[1], label: d[2]}));
+
+    const svg = d3.select('#graphSvg')
+        .attr('viewBox', [0, 0, width, height]);
+
+    // 箭头定义
+    svg.append('defs').append('marker')
+        .attr('id', 'arrowhead')
+        .attr('viewBox', '0 -5 10 10')
+        .attr('refX', 25)
+        .attr('refY', 0)
+        .attr('markerWidth', 6)
+        .attr('markerHeight', 6)
+        .attr('orient', 'auto')
+        .append('path')
+        .attr('d', 'M0,-5L10,0L0,5')
+        .attr('fill', '#adb5bd');
+
+    const g = svg.append('g');
+
+    // 缩放
+    svg.call(d3.zoom()
+        .scaleExtent([0.3, 3])
+        .on('zoom', (e) => g.attr('transform', e.transform)));
+
+    // 力导向布局
+    const simulation = d3.forceSimulation(nodes)
+        .force('link', d3.forceLink(links).id(d => d.id).distance(120))
+        .force('charge', d3.forceManyBody().strength(-400))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(40));
+
+    // 边
+    const link = g.append('g')
+        .selectAll('line')
+        .data(links)
+        .join('line')
+        .attr('stroke', '#dee2e6')
+        .attr('stroke-width', 1.5)
+        .attr('marker-end', 'url(#arrowhead)');
+
+    // 边标签
+    const linkLabel = g.append('g')
+        .selectAll('text')
+        .data(links)
+        .join('text')
+        .text(d => d.label)
+        .attr('font-size', 9)
+        .attr('fill', '#adb5bd')
+        .attr('text-anchor', 'middle');
+
+    // 节点组
+    const node = g.append('g')
+        .selectAll('g')
+        .data(nodes)
+        .join('g')
+        .call(d3.drag()
+            .on('start', (e, d) => { if (!e.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+            .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+            .on('end', (e, d) => { if (!e.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
+
+    // 节点圆形
+    node.append('circle')
+        .attr('r', 20)
+        .attr('fill', d => d.color)
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2)
+        .style('cursor', 'pointer')
+        .on('mouseover', function() { d3.select(this).transition().duration(200).attr('r', 25); })
+        .on('mouseout', function() { d3.select(this).transition().duration(200).attr('r', 20); })
+        .on('click', (e, d) => {
+            if (d.id <= 13) window.location.href = '/chapters/' + d.id;
+            else if (d.id === 14) window.location.href = '/cases/fiscal_revenue';
+            else if (d.id === 15) window.location.href = '/cases/power_monitoring';
+            else if (d.id === 16) window.location.href = '/cases/airline';
+            else if (d.id === 17) window.location.href = '/cases/broadcasting';
+        });
+
+    // 节点文字
+    node.append('text')
+        .text(d => d.name)
+        .attr('dy', 32)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', 11)
+        .attr('fill', '#5a5c69')
+        .style('pointer-events', 'none');
+
+    // 节点内数字
+    node.append('text')
+        .text(d => d.id <= 13 ? d.id : '')
+        .attr('dy', 5)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', 12)
+        .attr('font-weight', 'bold')
+        .attr('fill', '#fff')
+        .style('pointer-events', 'none');
+
+    // 力更新
+    simulation.on('tick', () => {
+        link.attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+        linkLabel.attr('x', d => (d.source.x + d.target.x) / 2)
+                 .attr('y', d => (d.source.y + d.target.y) / 2);
+        node.attr('transform', d => `translate(${d.x},${d.y})`);
+    });
+})();
+</script>
+{% endblock %}

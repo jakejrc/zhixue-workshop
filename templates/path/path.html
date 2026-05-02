@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% block title %}学习路径推荐{% endblock %}
+{% block page_title %}学习路径推荐{% endblock %}
+
+{% block content %}
+<!-- 三条路线选择 -->
+<div class="row mb-4">
+    {% for key, path in paths.items() %}
+    <div class="col-md-4">
+        <div class="card h-100 {{ 'border-primary' if key == 'solid' else '' }}" id="path_{{ key }}">
+            <div class="card-header text-white" style="background:{{ path.color }}">
+                <h5 class="mb-0"><i class="bi {{ path.icon }}"></i> {{ path.name }}</h5>
+            </div>
+            <div class="card-body">
+                <p>{{ path.desc }}</p>
+                <div class="mb-2">
+                    <span class="badge bg-secondary">{{ path.chapters|length }}章</span>
+                </div>
+                <button class="btn btn-sm {{ 'btn-primary' if key == 'solid' else 'btn-outline-primary' }} w-100"
+                        onclick="selectPath('{{ key }}')">
+                    选择此路线
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 当前路线详情 -->
+<div id="pathDetail" class="card mb-4" style="display:none;">
+    <div class="card-header"><h5 class="mb-0" id="pathTitle">学习路线详情</h5></div>
+    <div class="card-body">
+        <div id="pathTips"></div>
+    </div>
+</div>
+
+<!-- 学习进度追踪 -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between">
+        <h5 class="mb-0">📈 我的学习进度</h5>
+        <button class="btn btn-sm btn-outline-secondary" onclick="resetProgress()">重置</button>
+    </div>
+    <div class="card-body">
+        <div class="progress mb-3" style="height: 25px;">
+            <div class="progress-bar bg-success" id="progressBar" style="width: 0%">0%</div>
+        </div>
+        <div class="row" id="chapterChecks"></div>
+    </div>
+</div>
+
+<!-- 知识依赖图 -->
+<div class="card mb-4">
+    <div class="card-header"><h5 class="mb-0">🔗 章节知识依赖关系</h5></div>
+    <div class="card-body text-center">
+        <svg id="depGraph" width="100%" height="500" viewBox="0 0 900 500"></svg>
+    </div>
+</div>
+
+<!-- 章节详情表 -->
+<div class="card mb-4">
+    <div class="card-header"><h5 class="mb-0">📋 章节详情</h5></div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>章节</th>
+                    <th>主题</th>
+                    <th>难度</th>
+                    <th>预估学时</th>
+                    <th>前置知识</th>
+                    <th>状态</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ch_id, ch in chapters.items() %}
+                <tr id="chRow_{{ ch_id }}">
+                    <td><strong>第{{ ch_id }}章</strong></td>
+                    <td><a href="/chapters/{{ ch_id }}">{{ ch.title }}</a></td>
+                    <td>
+                        {% for i in range(difficulty[ch_id]) %}<span class="text-warning">★</span>{% endfor %}
+                        {% for i in range(5 - difficulty[ch_id]) %}<span class="text-muted">★</span>{% endfor %}
+                    </td>
+                    <td>{{ hours[ch_id] }}h</td>
+                    <td>
+                        {% if deps[ch_id] %}
+                            {% for d in deps[ch_id] %}
+                            <span class="badge bg-light text-dark">第{{ d }}章</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">无</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge bg-secondary" id="chStatus_{{ ch_id }}">未开始</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var CHAPTERS = {};
+{% for ch_id, ch in chapters.items() %}
+CHAPTERS[{{ ch_id }}] = '{{ ch.title }}';
+{% endfor %}
+
+var PATHS = {};
+{% for key, path in paths.items() %}
+PATHS['{{ key }}'] = {
+    name: '{{ path.name }}',
+    chapters: {{ path.chapters|tojson }},
+    tips: {{ path.tips|tojson }},
+    color: '{{ path.color }}',
+};
+{% endfor %}
+
+var DEPS = {};
+{% for ch_id, dep_list in deps.items() %}
+DEPS[{{ ch_id }}] = {{ dep_list|tojson }};
+{% endfor %}
+
+// 加载进度
+var completed = JSON.parse(localStorage.getItem('completedChapters') || '[]');
+
+function saveProgress() {
+    localStorage.setItem('completedChapters', JSON.stringify(completed));
+    updateUI();
+}
+
+function toggleChapter(ch) {
+    var idx = completed.indexOf(ch);
+    if (idx >= 0) {
+        completed.splice(idx, 1);
+    } else {
+        completed.push(ch);
+    }
+    saveProgress();
+}
+
+function resetProgress() {
+    if (confirm('确定要重置学习进度吗？')) {
+        completed = [];
+        saveProgress();
+    }
+}
+
+function selectPath(key) {
+    var p = PATHS[key];
+    if (!p) return;
+
+    document.getElementById('pathDetail').style.display = 'block';
+    document.getElementById('pathTitle').innerHTML = '<i class="bi bi-signpost-2"></i> ' + p.name;
+
+    var html = '<div class="mb-3"><strong>学习顺序：</strong><br>';
+    p.chapters.forEach(function(ch, i) {
+        var done = completed.indexOf(ch) >= 0;
+        html += '<span class="badge ' + (done ? 'bg-success' : 'bg-secondary') + ' me-1 mb-1" style="font-size:0.9rem;">';
+        html += (i+1) + '. 第' + ch + '章 ' + CHAPTERS[ch];
+        if (done) html += ' ✓';
+        html += '</span> ';
+        if (i < p.chapters.length - 1) html += ' → ';
+    });
+    html += '</div>';
+
+    html += '<div class="alert alert-info mb-0"><h6><i class="bi bi-lightbulb"></i> 学习建议</h6><ul class="mb-0">';
+    p.tips.forEach(function(t) { html += '<li>' + t + '</li>'; });
+    html += '</ul></div>';
+
+    document.getElementById('pathTips').innerHTML = html;
+}
+
+function updateUI() {
+    // 更新进度条
+    var pct = Math.round(completed.length / 13 * 100);
+    var bar = document.getElementById('progressBar');
+    bar.style.width = pct + '%';
+    bar.textContent = completed.length + '/13章 (' + pct + '%)';
+
+    // 更新复选框
+    for (var ch = 1; ch <= 13; ch++) {
+        var cb = document.getElementById('chCheck_' + ch);
+        if (cb) cb.checked = completed.indexOf(ch) >= 0;
+
+        var status = document.getElementById('chStatus_' + ch);
+        if (status) {
+            if (completed.indexOf(ch) >= 0) {
+                status.className = 'badge bg-success';
+                status.textContent = '已完成';
+            } else {
+                // 检查前置是否满足
+                var deps = DEPS[ch] || [];
+                var prereqMet = deps.every(function(d) { return completed.indexOf(d) >= 0; });
+                if (deps.length === 0 || prereqMet) {
+                    status.className = 'badge bg-primary';
+                    status.textContent = '可学习';
+                } else {
+                    status.className = 'badge bg-warning text-dark';
+                    status.textContent = '需先学第' + deps.join(',') + '章';
+                }
+            }
+        }
+    }
+}
+
+// 初始化复选框
+function initChecks() {
+    var container = document.getElementById('chapterChecks');
+    for (var ch = 1; ch <= 13; ch++) {
+        var div = document.createElement('div');
+        div.className = 'col-md-3 col-sm-4 mb-2';
+        div.innerHTML =
+            '<div class="form-check">' +
+            '<input class="form-check-input" type="checkbox" id="chCheck_' + ch + '" onchange="toggleChapter(' + ch + ')">' +
+            '<label class="form-check-label" for="chCheck_' + ch + '">第' + ch + '章 ' + CHAPTERS[ch] + '</label>' +
+            '</div>';
+        container.appendChild(div);
+    }
+    updateUI();
+}
+
+// 绘制依赖图
+function drawDepGraph() {
+    var svg = document.getElementById('depGraph');
+    var positions = {
+        1: {x: 100, y: 50}, 2: {x: 250, y: 50}, 3: {x: 400, y: 50},
+        4: {x: 200, y: 150}, 5: {x: 350, y: 150}, 6: {x: 500, y: 150},
+        7: {x: 150, y: 250}, 8: {x: 300, y: 250}, 9: {x: 450, y: 250},
+        10: {x: 600, y: 250}, 11: {x: 250, y: 350},
+        12: {x: 500, y: 350}, 13: {x: 650, y: 350},
+    };
+
+    var html = '';
+
+    // 画箭头（依赖关系）
+    for (var ch = 1; ch <= 13; ch++) {
+        var deps = DEPS[ch] || [];
+        deps.forEach(function(dep) {
+            var from = positions[dep];
+            var to = positions[ch];
+            if (from && to) {
+                html += '<line x1="' + from.x + '" y1="' + (from.y + 25) + '" x2="' + to.x + '" y2="' + (to.y - 25) + '" stroke="#adb5bd" stroke-width="2" marker-end="url(#arrow)"/>';
+            }
+        });
+    }
+
+    // 箭头标记
+    html += '<defs><marker id="arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#adb5bd"/></marker></defs>';
+
+    // 画节点
+    for (var ch = 1; ch <= 13; ch++) {
+        var pos = positions[ch];
+        var done = completed.indexOf(ch) >= 0;
+        var fill = done ? '#1cc88a' : '#4e73df';
+        var textColor = 'white';
+        var title = CHAPTERS[ch] || ('第' + ch + '章');
+
+        html += '<circle cx="' + pos.x + '" cy="' + pos.y + '" r="22" fill="' + fill + '" stroke="#fff" stroke-width="3" style="cursor:pointer" onclick="toggleChapter(' + ch + ')"/>';
+        html += '<text x="' + pos.x + '" y="' + (pos.y + 5) + '" text-anchor="middle" fill="' + textColor + '" font-size="14" font-weight="bold" style="cursor:pointer" onclick="toggleChapter(' + ch + ')">' + ch + '</text>';
+
+        // 章节名（在节点下方）
+        var shortTitle = title.length > 5 ? title.substring(0, 5) + '..' : title;
+        html += '<text x="' + pos.x + '" y="' + (pos.y + 40) + '" text-anchor="middle" fill="#333" font-size="11">' + shortTitle + '</text>';
+
+        // 完成标记
+        if (done) {
+            html += '<text x="' + (pos.x + 18) + '" y="' + (pos.y - 15) + '" font-size="16">✓</text>';
+        }
+    }
+
+    svg.innerHTML = html;
+}
+
+initChecks();
+drawDepGraph();
+</script>
+{% endblock %}

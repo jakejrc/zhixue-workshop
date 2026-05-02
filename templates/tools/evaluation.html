@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}模型评估{% endblock %}
+{% block page_title %}模型评估可视化{% endblock %}
+
+{% block content %}
+<p class="text-muted mb-4">混淆矩阵、ROC曲线、精确率-召回率曲线交互演示。拖动滑块调整阈值，实时观察指标变化。</p>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-grid-3x3"></i> 混淆矩阵</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <label class="form-label">分类阈值：<strong id="threshVal">0.50</strong></label>
+                    <input type="range" class="form-range" id="threshold" min="0.1" max="0.9" step="0.05" value="0.5">
+                </div>
+                <table class="table table-bordered text-center mx-auto" style="max-width:350px;">
+                    <thead>
+                        <tr><th></th><th colspan="2">预测</th></tr>
+                        <tr><th></th><th>正</th><th>负</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th>实际 正</th>
+                            <td class="table-success fw-bold" id="tp">-</td>
+                            <td class="table-danger fw-bold" id="fn">-</td>
+                        </tr>
+                        <tr>
+                            <th>实际 负</th>
+                            <td class="table-warning fw-bold" id="fp">-</td>
+                            <td class="table-info fw-bold" id="tn">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="row text-center mt-3">
+                    <div class="col-3"><small class="text-muted">准确率</small><br><strong id="accuracy">-</strong></div>
+                    <div class="col-3"><small class="text-muted">精确率</small><br><strong id="precision">-</strong></div>
+                    <div class="col-3"><small class="text-muted">召回率</small><br><strong id="recall">-</strong></div>
+                    <div class="col-3"><small class="text-muted">F1</small><br><strong id="f1">-</strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-graph-up"></i> ROC曲线</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="rocChart"></canvas>
+                <div class="text-center mt-2">
+                    <small class="text-muted">AUC = <span class="text-primary fw-bold" id="aucVal">-</span> | 当前点：<span class="text-danger fw-bold" id="rocPoint">-</span></small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="bi bi-bezier2"></i> 精确率-召回率曲线</h6>
+    </div>
+    <div class="card-body">
+        <canvas id="prChart"></canvas>
+        <div class="text-center mt-2">
+            <small class="text-muted">当前点：<span class="text-danger fw-bold" id="prPoint">-</span></small>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-info-circle"></i> 指标速查</h6></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3"><div class="p-2 border rounded"><strong>准确率</strong><br><small class="text-muted">(TP+TN)/总数</small></div></div>
+            <div class="col-md-3"><div class="p-2 border rounded"><strong>精确率</strong><br><small class="text-muted">TP/(TP+FP)</small></div></div>
+            <div class="col-md-3"><div class="p-2 border rounded"><strong>召回率</strong><br><small class="text-muted">TP/(TP+FN)</small></div></div>
+            <div class="col-md-3"><div class="p-2 border rounded"><strong>F1</strong><br><small class="text-muted">2PR/(P+R)</small></div></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// === 模拟数据 ===
+var y_true = [], y_prob = [], i, seed = 42;
+for (i = 0; i < 40; i++) y_true.push(1);
+for (i = 0; i < 60; i++) y_true.push(0);
+for (i = 0; i < 100; i++) {
+    seed = (seed * 16807) % 2147483647;
+    if (y_true[i] === 1) { y_prob.push(0.3 + (seed / 2147483647) * 0.65); }
+    else { y_prob.push((seed / 2147483647) * 0.55); }
+}
+
+// === 计算函数 ===
+function calc(th) {
+    var tp=0,fp=0,tn=0,fn=0;
+    for (var j=0; j<100; j++) {
+        if (y_prob[j]>=th) { if(y_true[j])tp++; else fp++; }
+        else { if(y_true[j])fn++; else tn++; }
+    }
+    var m = {tp:tp,fp:fp,tn:tn,fn:fn};
+    m.acc = (tp+tn)/100;
+    m.prec = tp+fp>0 ? tp/(tp+fp) : 0;
+    m.rec = tp+fn>0 ? tp/(tp+fn) : 0;
+    m.f1 = m.prec+m.rec>0 ? 2*m.prec*m.rec/(m.prec+m.rec) : 0;
+    m.fpr = tn+fp>0 ? 1-tn/(tn+fp) : 0;
+    return m;
+}
+
+// === 预计算ROC曲线数据 ===
+var rocX = [0], rocY = [0];
+for (var t = 0.02; t <= 1.0; t = Math.round((t+0.02)*100)/100) {
+    var m = calc(t);
+    rocX.push(m.fpr);
+    rocY.push(m.rec);
+}
+
+// === 预计算PR曲线数据 ===
+var prX = [], prY = [];
+for (var t = 0; t <= 1.0; t = Math.round((t+0.02)*100)/100) {
+    var m = calc(t);
+    if (m.prec > 0 && m.rec > 0) { prX.push(m.rec); prY.push(m.prec); }
+}
+
+// === 计算AUC ===
+var auc = 0;
+for (var k = 1; k < rocX.length; k++) {
+    auc += (rocX[k] - rocX[k-1]) * (rocY[k] + rocY[k-1]) / 2;
+}
+document.getElementById('aucVal').textContent = auc.toFixed(3);
+
+// === 创建ROC图表（曲线 + 随机线 + 红色标记点）===
+var rocChart = new Chart(document.getElementById('rocChart').getContext('2d'), {
+    type: 'scatter',
+    data: {
+        datasets: [
+            {
+                label: 'ROC',
+                data: rocX.map(function(x,i){return {x:x,y:rocY[i]};}),
+                showLine: true,
+                borderColor: '#4e73df',
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.3,
+                fill: false
+            },
+            {
+                label: '随机',
+                data: [{x:0,y:0},{x:1,y:1}],
+                showLine: true,
+                borderColor: '#ccc',
+                borderWidth: 1,
+                borderDash: [5,5],
+                pointRadius: 0,
+                fill: false
+            },
+            {
+                label: '当前阈值',
+                data: [{x:0, y:0}],
+                showLine: false,
+                pointRadius: 10,
+                pointBackgroundColor: '#e74a3b',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        animation: false,
+        scales: {
+            x: { title: { display: true, text: 'FPR (假正率)' }, min: 0, max: 1 },
+            y: { title: { display: true, text: 'TPR (真正率)' }, min: 0, max: 1 }
+        },
+        plugins: { legend: { display: false } }
+    }
+});
+
+// === 创建PR图表（曲线 + 红色标记点）===
+var prChart = new Chart(document.getElementById('prChart').getContext('2d'), {
+    type: 'scatter',
+    data: {
+        datasets: [
+            {
+                label: 'PR',
+                data: prX.map(function(x,i){return {x:x,y:prY[i]};}),
+                showLine: true,
+                borderColor: '#1cc88a',
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.3,
+                fill: false
+            },
+            {
+                label: '当前阈值',
+                data: [{x:0, y:0}],
+                showLine: false,
+                pointRadius: 10,
+                pointBackgroundColor: '#e74a3b',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        animation: false,
+        scales: {
+            x: { title: { display: true, text: 'Recall (召回率)' }, min: 0, max: 1 },
+            y: { title: { display: true, text: 'Precision (精确率)' }, min: 0, max: 1 }
+        },
+        plugins: { legend: { display: false } }
+    }
+});
+
+// === 更新函数 ===
+function update() {
+    var th = parseFloat(document.getElementById('threshold').value);
+    document.getElementById('threshVal').textContent = th.toFixed(2);
+    var m = calc(th);
+
+    // 更新混淆矩阵
+    document.getElementById('tp').textContent = m.tp;
+    document.getElementById('fn').textContent = m.fn;
+    document.getElementById('fp').textContent = m.fp;
+    document.getElementById('tn').textContent = m.tn;
+    document.getElementById('accuracy').textContent = m.acc.toFixed(3);
+    document.getElementById('precision').textContent = m.prec.toFixed(3);
+    document.getElementById('recall').textContent = m.rec.toFixed(3);
+    document.getElementById('f1').textContent = m.f1.toFixed(3);
+
+    // 更新ROC标记点
+    rocChart.data.datasets[2].data = [{x: m.fpr, y: m.rec}];
+    rocChart.update();
+    document.getElementById('rocPoint').textContent = '(' + m.fpr.toFixed(2) + ', ' + m.rec.toFixed(2) + ')';
+
+    // 更新PR标记点
+    prChart.data.datasets[1].data = [{x: m.rec, y: m.prec}];
+    prChart.update();
+    document.getElementById('prPoint').textContent = '(' + m.rec.toFixed(2) + ', ' + m.prec.toFixed(2) + ')';
+}
+
+// 绑定滑块事件
+document.getElementById('threshold').addEventListener('input', update);
+update();
+</script>
+{% endblock %}

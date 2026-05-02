@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}课程章节{% endblock %}
+{% block page_title %}课程章节{% endblock %}
+
+{% block content %}
+<p class="text-muted mb-4">机器学习课程完整13章内容，涵盖理论基础、核心算法、综合案例与期末考核。</p>
+
+<div class="row g-4">
+{% for ch in chapters %}
+    <div class="col-md-6 col-lg-4">
+        <a href="{{ url_for('chapters.chapter_detail', chapter_id=ch.id) }}" class="text-decoration-none">
+            <div class="card chapter-card h-100" style="--chapter-color: {{ ch.color }};">
+                <div class="card-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <div class="chapter-icon" style="background: {{ ch.color }};">
+                            <i class="bi {{ ch.icon }}"></i>
+                        </div>
+                        <div>
+                            <h6 class="card-title text-dark mb-1">第{{ ch.id }}章 {{ ch.title }}</h6>
+                            <p class="card-text small text-muted mb-2">{{ ch.summary }}</p>
+                            <div class="d-flex gap-2 flex-wrap">
+                                {% if ch.has_viz %}
+                                <span class="tag" style="background: rgba(28,200,138,0.1); color: #1cc88a;">
+                                    <i class="bi bi-bar-chart-line"></i> 可视化
+                                </span>
+                                {% endif %}
+                                {% if ch.has_quiz %}
+                                <span class="tag" style="background: rgba(231,74,59,0.1); color: #e74a3b;">
+                                    <i class="bi bi-pencil-square"></i> 测验
+                                </span>
+                                {% endif %}
+                                {% if ch.case_key %}
+                                <span class="tag" style="background: rgba(246,194,62,0.1); color: #f6c23e;">
+                                    <i class="bi bi-clipboard-data"></i> 案例
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}考试进行中{% endblock %}
+{% block page_title %}模拟考试{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- 计时器 -->
+        <div class="card mb-3" id="timerCard">
+            <div class="card-body d-flex justify-content-between align-items-center py-2">
+                <div>
+                    <span class="badge bg-primary me-2" id="progressBadge">0/{{ count }}</span>
+                    <span class="text-muted">已答</span>
+                </div>
+                <div id="timerDisplay" class="fs-5 fw-bold text-primary">
+                    <i class="bi bi-clock"></i> <span id="timeText">--:--</span>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="submitExam()">
+                    <i class="bi bi-send"></i> 交卷
+                </button>
+            </div>
+        </div>
+
+        <!-- 题目区域 -->
+        {% for q in questions %}
+        {% set q_idx = loop.index0 %}
+        <div class="card mb-3 exam-question" id="exam_q{{ q_idx }}" style="{% if not loop.first %}display:none;{% endif %}">
+            <div class="card-body">
+                <h6 class="mb-3">
+                    <span class="badge bg-primary me-2">{{ loop.index }}/{{ count }}</span>
+                    <span class="badge bg-secondary">第{{ q.chapter }}章</span>
+                    {{ q.q }}
+                </h6>
+                {% for opt in q.options %}
+                <div class="quiz-option" data-q="{{ q_idx }}" data-o="{{ loop.index0 }}" onclick="selectExamOption(this)">
+                    <span class="option-letter me-2">{{ ['A','B','C','D'][loop.index0] }}.</span>
+                    {{ opt }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- 导航 -->
+        <div class="d-flex justify-content-between mt-3">
+            <button class="btn btn-outline-secondary" id="btnPrev" onclick="examNav(-1)" disabled>
+                <i class="bi bi-arrow-left"></i> 上一题
+            </button>
+            <button class="btn btn-primary" id="btnNext" onclick="examNav(1)">
+                下一题 <i class="bi bi-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- 答题卡侧栏 -->
+    <div class="col-lg-4">
+        <div class="card sticky-top" style="top: 80px;">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-grid"></i> 答题卡</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 mb-3" id="answerSheet">
+                    {% for q in questions %}
+                    <div class="badge bg-secondary exam-badge" id="ebadge_{{ loop.index0 }}"
+                         style="width:2.5rem;height:2.5rem;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;"
+                         onclick="examGoTo({{ loop.index0 }})">{{ loop.index }}</div>
+                    {% endfor %}
+                </div>
+                <div class="d-flex gap-3 small">
+                    <span><span class="badge bg-primary">&nbsp;</span> 已答</span>
+                    <span><span class="badge bg-secondary">&nbsp;</span> 未答</span>
+                </div>
+                <hr>
+                <div class="text-center">
+                    <button class="btn btn-danger w-100" onclick="submitExam()">
+                        <i class="bi bi-send"></i> 交卷
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const totalQ = {{ count }};
+let currentQ = 0;
+let answers = {};
+
+// 计时器
+let timeLimit = parseInt(localStorage.getItem('exam_time_limit') || '0') * 60;
+let elapsed = 0;
+let timerInterval = null;
+
+function startTimer() {
+    if (timeLimit <= 0) {
+        document.getElementById('timeText').textContent = '不限时';
+        return;
+    }
+    timerInterval = setInterval(() => {
+        elapsed++;
+        const remaining = timeLimit - elapsed;
+        if (remaining <= 0) {
+            clearInterval(timerInterval);
+            alert('时间到！自动交卷。');
+            submitExam();
+            return;
+        }
+        const min = Math.floor(remaining / 60);
+        const sec = remaining % 60;
+        const display = min.toString().padStart(2,'0') + ':' + sec.toString().padStart(2,'0');
+        document.getElementById('timeText').textContent = display;
+        if (remaining < 300) document.getElementById('timerDisplay').classList.add('text-danger');
+    }, 1000);
+    // 初始显示
+    const min = Math.floor(timeLimit / 60);
+    const sec = timeLimit % 60;
+    document.getElementById('timeText').textContent = min.toString().padStart(2,'0') + ':' + sec.toString().padStart(2,'0');
+}
+
+function selectExamOption(el) {
+    const qIdx = parseInt(el.dataset.q);
+    const oIdx = parseInt(el.dataset.o);
+    if (answers[qIdx] !== undefined) return;
+    el.parentElement.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    answers[qIdx] = oIdx;
+
+    // 更新答题卡
+    document.getElementById('ebadge_' + qIdx).className = 'badge bg-primary exam-badge';
+    document.getElementById('ebadge_' + qIdx).style.cssText = 'width:2.5rem;height:2.5rem;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;';
+
+    document.getElementById('progressBadge').textContent = Object.keys(answers).length + '/' + totalQ;
+    document.getElementById('btnNext').disabled = false;
+}
+
+function examNav(dir) {
+    document.getElementById('exam_q' + currentQ).style.display = 'none';
+    currentQ = Math.max(0, Math.min(totalQ - 1, currentQ + dir));
+    document.getElementById('exam_q' + currentQ).style.display = 'block';
+    document.getElementById('btnPrev').disabled = currentQ === 0;
+    document.getElementById('btnNext').disabled = answers[currentQ] === undefined && currentQ < totalQ - 1;
+}
+
+function examGoTo(idx) {
+    document.getElementById('exam_q' + currentQ).style.display = 'none';
+    currentQ = idx;
+    document.getElementById('exam_q' + currentQ).style.display = 'block';
+    document.getElementById('btnPrev').disabled = currentQ === 0;
+    document.getElementById('btnNext').disabled = answers[currentQ] === undefined && currentQ < totalQ - 1;
+}
+
+function submitExam() {
+    if (Object.keys(answers).length < totalQ) {
+        if (!confirm('还有 ' + (totalQ - Object.keys(answers).length) + ' 题未作答，确定交卷？')) return;
+    }
+    clearInterval(timerInterval);
+
+    // 逐题检查并统计
+    let correct = 0;
+    const promises = [];
+    for (let i = 0; i < totalQ; i++) {
+        const ans = answers[i] !== undefined ? answers[i] : -1;
+        promises.push(
+            fetch('/study/exam/check', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({index: i, answer: ans})
+            }).then(r => r.json()).then(data => {
+                if (data.correct) correct++;
+                return data;
+            })
+        );
+    }
+
+    Promise.all(promises).then(results => {
+        const score = Math.round(correct / totalQ * 100);
+        // 保存考试记录
+        const history = JSON.parse(localStorage.getItem('exam_history') || '[]');
+        history.push({
+            score: score,
+            correct: correct,
+            total: totalQ,
+            time: elapsed,
+            date: new Date().toLocaleString('zh-CN')
+        });
+        localStorage.setItem('exam_history', JSON.stringify(history));
+        // 跳转结果页
+        window.location.href = '/study/exam/result';
+    });
+}
+
+// 启动
+startTimer();
+</script>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}第{{ chapter.id }}章 {{ chapter.title }}{% endblock %}
+{% block page_title %}第{{ chapter.id }}章 {{ chapter.title }}{% endblock %}
+
+{% block content %}
+<!-- 章节头部 -->
+<div class="card mb-4" style="border-left: 4px solid {{ chapter.color }};">
+    <div class="card-body">
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <div class="chapter-icon" style="background: {{ chapter.color }}; width: 3.5rem; height: 3.5rem; font-size: 1.5rem;">
+                <i class="bi {{ chapter.icon }}"></i>
+            </div>
+            <div>
+                <h4 class="mb-0">第{{ chapter.id }}章 {{ chapter.title }}</h4>
+                <p class="text-muted mb-0 mt-1">{{ chapter.summary }}</p>
+            </div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            {% if chapter.has_viz %}
+            <a href="{{ url_for('viz.viz_detail', algo_key=chapter.viz_algo) }}" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-bar-chart-line"></i> 查看可视化
+            </a>
+            {% endif %}
+            {% if chapter.has_quiz %}
+            <a href="{{ url_for('quiz.quiz_detail', chapter_id=chapter.id) }}" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-pencil-square"></i> 开始测验
+            </a>
+            {% endif %}
+            {% if chapter.case_key %}
+            <a href="{{ url_for('cases.case_detail', case_key=chapter.case_key) }}" class="btn btn-sm btn-outline-warning">
+                <i class="bi bi-clipboard-data"></i> 查看案例
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- 标签页 -->
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#concepts">核心概念</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#algorithms">算法速查</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#tools">工具库</a>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- 核心概念 -->
+    <div class="tab-pane fade show active" id="concepts">
+        <div class="row g-4">
+            {% for concept in chapter.key_concepts %}
+            <div class="col-md-6">
+                <div class="key-point">
+                    <strong>{{ concept.name }}</strong><br>
+                    <span class="text-muted">{{ concept.desc }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 算法速查 -->
+    <div class="tab-pane fade" id="algorithms">
+        <div class="d-flex flex-wrap gap-2">
+            {% for algo in chapter.algorithms %}
+            <span class="badge bg-primary fs-6 py-2 px-3">{{ algo }}</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 工具库 -->
+    <div class="tab-pane fade" id="tools">
+        <div class="d-flex flex-wrap gap-2">
+            {% for tool in chapter.tools %}
+            <span class="badge bg-success fs-6 py-2 px-3">{{ tool }}</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- 章节导航 -->
+<div class="d-flex justify-content-between mt-4">
+    {% if chapter.id > 1 %}
+    <a href="{{ url_for('chapters.chapter_detail', chapter_id=chapter.id - 1) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> 第{{ chapter.id - 1 }}章
+    </a>
+    {% else %}
+    <div></div>
+    {% endif %}
+    {% if chapter.id < 13 %}
+    <a href="{{ url_for('chapters.chapter_detail', chapter_id=chapter.id + 1) }}" class="btn btn-outline-primary">
+        第{{ chapter.id + 1 }}章 <i class="bi bi-arrow-right"></i>
+    </a>
+    {% else %}
+    <div></div>
+    {% endif %}
+</div>
+{% endblock %}

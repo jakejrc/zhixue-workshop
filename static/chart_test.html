@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Chart.js测试</title>
+</head>
+<body>
+    <h2>Chart.js渲染测试</h2>
+    <div style="width:600px; height:400px; border:1px solid #ccc; padding:10px;">
+        <canvas id="testChart"></canvas>
+    </div>
+    <div id="status" style="margin-top:20px; padding:10px; background:#f0f0f0;"></div>
+    
+    <script src="/static/js/chart.min.js"></script>
+    <script>
+    var statusEl = document.getElementById('status');
+    try {
+        statusEl.innerHTML = 'Chart.js loaded: ' + (typeof Chart !== 'undefined') + '<br>';
+        
+        var ctx = document.getElementById('testChart').getContext('2d');
+        var chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['0.00','0.10','0.20','0.30','0.40','0.50','0.60','0.70','0.80','0.90','1.00'],
+                datasets: [{
+                    label: 'Test ROC',
+                    data: [0.0, 0.3, 0.5, 0.65, 0.75, 0.82, 0.88, 0.92, 0.95, 0.98, 1.0],
+                    borderColor: '#4e73df',
+                    borderWidth: 2,
+                    pointRadius: 4,
+                    tension: 0.3,
+                    fill: true,
+                    backgroundColor: 'rgba(78,115,223,0.1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { title: { display: true, text: 'FPR' }, min: 0, max: 1 },
+                    y: { title: { display: true, text: 'TPR' }, min: 0, max: 1 }
+                }
+            }
+        });
+        statusEl.innerHTML += 'Chart created successfully!<br>';
+        statusEl.innerHTML += 'Chart type: ' + chart.config.type + '<br>';
+        statusEl.innerHTML += 'Dataset count: ' + chart.data.datasets.length + '<br>';
+        statusEl.style.background = '#d4edda';
+    } catch(e) {
+        statusEl.innerHTML += 'ERROR: ' + e.message + '<br>';
+        statusEl.innerHTML += 'Stack: ' + e.stack + '<br>';
+        statusEl.style.background = '#f8d7da';
+    }
+    </script>
+</body>
+</html>

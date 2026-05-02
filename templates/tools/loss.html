@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}损失函数{% endblock %}
+{% block page_title %}损失函数可视化{% endblock %}
+
+{% block content %}
+<p class="text-muted mb-4">不同损失函数的曲线对比，理解"模型在优化什么"。</p>
+
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex align-items-center justify-content-between">
+        <h6 class="mb-0"><i class="bi bi-graph-up"></i> 损失函数曲线对比</h6>
+        <div class="d-flex gap-3">
+            <span><span style="color:#4e73df;">■</span> MSE</span>
+            <span><span style="color:#1cc88a;">■</span> MAE</span>
+            <span><span style="color:#f6c23e;">■</span> Huber</span>
+            <span><span style="color:#e74a3b;">■</span> Cross-Entropy</span>
+            <span><span style="color:#6f42c1;">■</span> Hinge</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <canvas id="lossChart" height="120"></canvas>
+    </div>
+</div>
+
+<div class="row g-3">
+{% for loss in losses %}
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title">{{ loss.name }}</h6>
+                <p class="mb-1"><span class="badge bg-secondary">{{ loss.task }}</span></p>
+                <p class="small text-muted mb-2">{{ loss.desc }}</p>
+                <div class="formula-box text-center mb-2" style="font-size:0.9rem;">{{ loss.formula }}</div>
+                <small class="text-muted">值域：{{ loss.range }} · {{ loss.curve_desc }}</small>
+            </div>
+        </div>
+    </div>
+{% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const ctx = document.getElementById('lossChart').getContext('2d');
+const x = [];
+for (let i = -3; i <= 3; i += 0.1) x.push(Math.round(i * 10) / 10);
+
+const mse = x.map(v => v * v);
+const mae = x.map(v => Math.abs(v));
+const huber = x.map(v => Math.abs(v) <= 1 ? 0.5 * v * v : Math.abs(v) - 0.5);
+// cross-entropy: -log(sigmoid(x)) for positive, -log(1-sigmoid(x)) for negative
+const ce = x.map(v => {
+    const sig = 1 / (1 + Math.exp(-v));
+    return v >= 0 ? -Math.log(sig + 1e-7) : -Math.log(1 - sig + 1e-7);
+});
+const hinge = x.map(v => Math.max(0, 1 - v));
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: x.map(v => v.toFixed(1)),
+        datasets: [
+            { label: 'MSE', data: mse, borderColor: '#4e73df', borderWidth: 2, pointRadius: 0, tension: 0.4 },
+            { label: 'MAE', data: mae, borderColor: '#1cc88a', borderWidth: 2, pointRadius: 0, tension: 0.4 },
+            { label: 'Huber', data: huber, borderColor: '#f6c23e', borderWidth: 2, pointRadius: 0, tension: 0.4 },
+            { label: 'Cross-Entropy', data: ce, borderColor: '#e74a3b', borderWidth: 2, pointRadius: 0, tension: 0.4 },
+            { label: 'Hinge', data: hinge, borderColor: '#6f42c1', borderWidth: 2, pointRadius: 0, tension: 0.4 },
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            x: { title: { display: true, text: '预测误差 (ŷ - y)' }, ticks: { maxTicksLimit: 13 } },
+            y: { title: { display: true, text: '损失值' }, min: 0, max: 6 }
+        },
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+</script>
+{% endblock %}

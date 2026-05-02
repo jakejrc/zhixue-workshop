@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}综合案例{% endblock %}
+{% block page_title %}综合案例{% endblock %}
+
+{% block content %}
+<p class="text-muted mb-4">4个真实业务案例全流程指导，从数据准备到模型评估，每步都有代码和解释。</p>
+
+<div class="row g-4">
+{% for key, case in cases.items() %}
+    <div class="col-md-6">
+        <a href="{{ url_for('cases.case_detail', case_key=key) }}" class="text-decoration-none">
+            <div class="card h-100" style="border-top: 4px solid {{ case.color }};">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <div style="width: 3rem; height: 3rem; background: {{ case.color }}; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                            <i class="bi {{ case.icon }} text-white fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 text-dark">{{ case.name }}</h6>
+                            <small class="text-muted">第{{ case.chapter }}章 · {{ case.steps|length }} 个步骤</small>
+                        </div>
+                    </div>
+                    <p class="card-text small text-muted">{{ case.summary }}</p>
+                    <div class="d-flex gap-2 flex-wrap">
+                        {% for step in case.steps %}
+                        <span class="badge bg-light text-dark">{{ step.title[:6] }}...</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ case.name }}{% endblock %}
+{% block page_title %}{{ case.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- 案例头部 -->
+        <div class="card mb-4" style="border-left: 4px solid {{ case.color }};">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div style="width: 3.5rem; height: 3.5rem; background: {{ case.color }}; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center;">
+                        <i class="bi {{ case.icon }} text-white fs-3"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0">{{ case.name }}</h4>
+                        <p class="text-muted mb-0">第{{ case.chapter }}章 · {{ case.steps|length }} 个步骤</p>
+                    </div>
+                </div>
+                <p class="mb-0">{{ case.summary }}</p>
+            </div>
+        </div>
+
+        <!-- 步骤 -->
+        {% for step in case.steps %}
+        <div class="case-step" data-step="{{ loop.index }}">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="mb-2">{{ step.title }}</h5>
+                    <p class="text-muted">{{ step.desc }}</p>
+                    <div class="code-block">{{ step.code }}</div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- 结果 -->
+        <div class="card mb-4" style="border-left: 4px solid {{ case.color }};">
+            <div class="card-body">
+                <h5><i class="bi bi-trophy"></i> 案例结果</h5>
+                <p class="mb-0">{{ case.result }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 侧边栏 -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-list-ol"></i> 步骤导航</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for step in case.steps %}
+                    <a href="#" class="list-group-item list-group-item-action d-flex align-items-center gap-2" onclick="document.querySelector('[data-step={{ loop.index }}]').scrollIntoView({behavior:'smooth'}); return false;">
+                        <span class="badge rounded-pill" style="background: {{ case.color }};">{{ loop.index }}</span>
+                        {{ step.title }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-arrow-left-right"></i> 其他案例</h6>
+            </div>
+            <div class="card-body">
+                {% for key, other in cases.items() %}
+                {% if key != case_key %}
+                <a href="{{ url_for('cases.case_detail', case_key=key) }}" class="text-decoration-none d-block mb-2">
+                    <i class="bi {{ other.icon }}" style="color: {{ other.color }};"></i> {{ other.name }}
+                </a>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

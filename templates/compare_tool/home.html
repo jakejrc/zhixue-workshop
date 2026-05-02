@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}算法实战对比器{% endblock %}
+{% block page_title %}算法实战对比器{% endblock %}
+
+{% block content %}
+<!-- 选择面板 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row align-items-end">
+            <div class="col-md-4">
+                <label class="form-label fw-bold">1. 选择数据集</label>
+                <select id="dsSelect" class="form-select">
+                    {% for key, ds in datasets.items() %}
+                    <option value="{{ key }}">{{ ds.name }} - {{ ds.description }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label fw-bold">2. 选择算法（可多选）</label>
+                <div class="d-flex flex-wrap gap-2" id="algoChecks">
+                    {% for key, algo in algorithms.items() %}
+                    <div class="form-check">
+                        <input class="form-check-input algo-check" type="checkbox" value="{{ key }}" id="algo_{{ key }}" {{ 'checked' if key in ['knn','dt','svm'] else '' }}>
+                        <label class="form-check-label" for="algo_{{ key }}">
+                            <i class="bi {{ algo.icon }}"></i> {{ algo.name }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="col-md-2 text-end">
+                <button class="btn btn-primary btn-lg w-100" onclick="runCompare()" id="runBtn">
+                    <i class="bi bi-play-fill"></i> 开始对比
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 加载提示 -->
+<div id="loadingDiv" class="text-center py-5" style="display:none;">
+    <div class="spinner-border text-primary" style="width:3rem;height:3rem;"></div>
+    <p class="mt-3 text-muted">正在训练模型并绘制决策边界，请稍候...</p>
+</div>
+
+<!-- 结果区域 -->
+<div id="resultArea" style="display:none;">
+    <!-- 数据集信息 -->
+    <div class="alert alert-info mb-3">
+        <i class="bi bi-info-circle"></i>
+        <strong id="dsInfo"></strong>
+        <span id="dsStats"></span>
+    </div>
+
+    <!-- 对比总表 -->
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">📊 性能对比</h5></div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>排名</th>
+                        <th>算法</th>
+                        <th>准确率</th>
+                        <th>交叉验证耗时</th>
+                        <th>训练耗时</th>
+                        <th>最佳?</th>
+                    </tr>
+                </thead>
+                <tbody id="resultTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 决策边界对比 -->
+    <h5 class="mb-3">🗺️ 决策边界可视化</h5>
+    <div class="row" id="boundaryCards"></div>
+</div>
+
+<!-- 算法说明 -->
+<div class="card mt-4">
+    <div class="card-header"><h5 class="mb-0">📖 算法速览</h5></div>
+    <div class="card-body">
+        <div class="row">
+            {% for key, algo in algorithms.items() %}
+            <div class="col-md-4 mb-2">
+                <span class="badge bg-primary me-1"><i class="bi {{ algo.icon }}"></i></span>
+                <strong>{{ algo.name }}</strong> - {{ algo.desc }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function runCompare() {
+    try {
+        console.log('[Compare] runCompare called');
+        var dataset = document.getElementById('dsSelect').value;
+        console.log('[Compare] dataset:', dataset);
+        var algos = [];
+        document.querySelectorAll('.algo-check:checked').forEach(function(cb) {
+            algos.push(cb.value);
+        });
+        console.log('[Compare] algorithms:', algos);
+        if (algos.length < 2) {
+            alert('请至少选择2个算法进行对比');
+            return;
+        }
+        if (algos.length > 4) {
+            alert('最多同时对比4个算法');
+            return;
+        }
+
+        var loadDiv = document.getElementById('loadingDiv');
+        var resArea = document.getElementById('resultArea');
+        var btn = document.getElementById('runBtn');
+        loadDiv.style.display = 'block';
+        resArea.style.display = 'none';
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split"></i> 运行中...';
+
+        console.log('[Compare] Sending request to /compare-tool/run');
+        fetch('/compare-tool/run', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({dataset: dataset, algorithms: algos})
+        })
+        .then(function(resp) {
+            console.log('[Compare] Response status:', resp.status);
+            return resp.json();
+        })
+        .then(function(data) {
+            console.log('[Compare] Data received:', data.error || 'OK');
+            loadDiv.style.display = 'none';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-play-fill"></i> 开始对比';
+
+            if (data.error) {
+                alert('错误: ' + data.error);
+                return;
+            }
+
+            // 数据集信息
+            document.getElementById('dsInfo').textContent = data.dataset;
+            document.getElementById('dsStats').textContent =
+                ' | ' + data.samples + '样本 | ' + data.features + '特征 | ' + data.classes + '类别';
+
+            // 结果表格
+            var tbody = document.getElementById('resultTable');
+            tbody.innerHTML = '';
+            var bestAcc = data.results[0].accuracy_mean;
+            data.results.forEach(function(r, i) {
+                var isBest = r.accuracy_mean === bestAcc;
+                var tr = document.createElement('tr');
+                tr.className = isBest ? 'table-success' : '';
+                tr.innerHTML =
+                    '<td><strong>#' + (i+1) + '</strong></td>' +
+                    '<td><i class="bi ' + r.icon + ' me-1"></i>' + r.name + '</td>' +
+                    '<td><strong>' + r.accuracy_mean + '%</strong> ± ' + r.accuracy_std + '%</td>' +
+                    '<td>' + r.cv_time + 's</td>' +
+                    '<td>' + r.train_time + 's</td>' +
+                    '<td>' + (isBest ? '<span class="badge bg-success">🏆 最佳</span>' : '') + '</td>';
+                tbody.appendChild(tr);
+            });
+
+            // 决策边界卡片
+            var cards = document.getElementById('boundaryCards');
+            cards.innerHTML = '';
+            data.results.forEach(function(r, i) {
+                var col = document.createElement('div');
+                col.className = 'col-md-6 col-lg-4 mb-3';
+                var isBest = r.accuracy_mean === bestAcc;
+                col.innerHTML =
+                    '<div class="card h-100 ' + (isBest ? 'border-success' : '') + '">' +
+                    (isBest ? '<div class="card-header bg-success text-white py-1"><small>🏆 最佳</small></div>' : '') +
+                    '<div class="card-body text-center p-2">' +
+                    '<img src="data:image/png;base64,' + r.boundary_img + '" class="img-fluid rounded">' +
+                    '</div>' +
+                    '<div class="card-footer text-center">' +
+                    '<strong>' + r.name + '</strong> | 准确率: ' + r.accuracy_mean + '%' +
+                    '</div></div>';
+                cards.appendChild(col);
+            });
+
+            resArea.style.display = 'block';
+            console.log('[Compare] Done!');
+        })
+        .catch(function(err) {
+            console.error('[Compare] Error:', err);
+            loadDiv.style.display = 'none';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-play-fill"></i> 开始对比';
+            alert('请求失败: ' + err.message);
+        });
+    } catch(e) {
+        console.error('[Compare] Exception:', e);
+        alert('JS错误: ' + e.message);
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}公式推导{% endblock %}
+{% block page_title %}公式推导{% endblock %}
+
+{% block content %}
+<p class="text-muted mb-4">核心公式逐步推导，点击展开每一步，附带直觉解释。</p>
+
+<div class="row g-4">
+{% for f in formulas %}
+    <div class="col-md-6 col-lg-4">
+        <a href="{{ url_for('formula.formula_detail', formula_id=f.id) }}" class="text-decoration-none">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h6 class="card-title text-dark">{{ f.title }}</h6>
+                    <p class="card-text small text-muted mb-2">{{ f.chapter }}</p>
+                    <span class="badge bg-light text-dark">{{ f.steps|length }} 步推导</span>
+                </div>
+            </div>
+        </a>
+    </div>
+{% endfor %}
+</div>
+{% endblock %}

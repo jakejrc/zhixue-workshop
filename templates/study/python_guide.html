@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Python环境指南{% endblock %}
+{% block page_title %}Python 环境安装指南{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+
+        <!-- 方案对比 -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-question-circle"></i> 选哪个方案？</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="card border-success h-100">
+                            <div class="card-body text-center">
+                                <h5>🟢 方案一：Anaconda</h5>
+                                <p class="text-muted small">推荐！一键安装，自带Python+所有库+Jupyter</p>
+                                <span class="badge bg-success">新手首选</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-primary h-100">
+                            <div class="card-body text-center">
+                                <h5>🔵 方案二：pip手动装</h5>
+                                <p class="text-muted small">已有Python？用pip逐个安装库</p>
+                                <span class="badge bg-primary">有基础者</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-warning h-100">
+                            <div class="card-body text-center">
+                                <h5>🟡 方案三：在线平台</h5>
+                                <p class="text-muted small">零安装！Google Colab / Kaggle直接用</p>
+                                <span class="badge bg-warning text-dark">最省事</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 方案一：Anaconda -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">🟢 方案一：Anaconda 安装（推荐）</h5>
+            </div>
+            <div class="card-body">
+                <h6>Step 1：下载 Anaconda</h6>
+                <p>访问 <a href="https://www.anaconda.com/download" target="_blank">anaconda.com/download</a>，下载 Windows 64-bit 版本（约 800MB）。</p>
+                <div class="alert alert-info small">
+                    <i class="bi bi-info-circle"></i> 国内下载慢？用清华镜像：<a href="https://mirrors.tuna.tsinghua.edu.cn/anaconda/archive/" target="_blank">mirrors.tuna.tsinghua.edu.cn</a>
+                </div>
+
+                <h6 class="mt-4">Step 2：安装</h6>
+                <p>双击安装包，一路 Next。注意：</p>
+                <ul>
+                    <li>✅ 勾选 "Add Anaconda to PATH"（虽然它说不推荐，但对新手更方便）</li>
+                    <li>✅ 选择 "Just Me" 安装</li>
+                </ul>
+
+                <h6 class="mt-4">Step 3：验证安装</h6>
+                <p>打开 <strong>Anaconda Prompt</strong>（开始菜单搜索），输入：</p>
+                <pre class="bg-dark text-light p-3 rounded"><code>python --version          # 应显示 Python 3.x
+conda --version           # 应显示 conda 24.x
+python -c "import sklearn; print(sklearn.__version__)"  # 应显示版本号</code></pre>
+
+                <h6 class="mt-4">Step 4：启动 Jupyter Notebook</h6>
+                <pre class="bg-dark text-light p-3 rounded"><code>jupyter notebook</code></pre>
+                <p>浏览器自动打开，新建一个 Python 3 笔记本即可开始写代码。</p>
+            </div>
+        </div>
+
+        <!-- 方案二：pip -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">🔵 方案二：pip 手动安装</h5>
+            </div>
+            <div class="card-body">
+                <h6>Step 1：确认 Python 已安装</h6>
+                <pre class="bg-dark text-light p-3 rounded"><code>python --version   # 需要 Python 3.8+</code></pre>
+                <p>没有？去 <a href="https://www.python.org/downloads/" target="_blank">python.org</a> 下载，安装时勾选 "Add to PATH"。</p>
+
+                <h6 class="mt-4">Step 2：配置国内镜像（加速下载）</h6>
+                <pre class="bg-dark text-light p-3 rounded"><code>pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple</code></pre>
+
+                <h6 class="mt-4">Step 3：安装课程所需库</h6>
+                <pre class="bg-dark text-light p-3 rounded"><code>pip install numpy pandas matplotlib scikit-learn jupyter seaborn</code></pre>
+
+                <h6 class="mt-4">Step 4：启动 Jupyter</h6>
+                <pre class="bg-dark text-light p-3 rounded"><code>jupyter notebook</code></pre>
+            </div>
+        </div>
+
+        <!-- 方案三：在线平台 -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0">🟡 方案三：在线平台（零安装）</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card border h-100">
+                            <div class="card-body">
+                                <h6>Google Colab</h6>
+                                <p class="small text-muted">谷歌提供的免费Jupyter环境，自带GPU。</p>
+                                <a href="https://colab.research.google.com" target="_blank" class="btn btn-outline-primary btn-sm">打开 Colab</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border h-100">
+                            <div class="card-body">
+                                <h6>Kaggle Notebooks</h6>
+                                <p class="small text-muted">Kaggle平台，自带数据集和GPU。</p>
+                                <a href="https://www.kaggle.com/code" target="_blank" class="btn btn-outline-primary btn-sm">打开 Kaggle</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 常见问题 -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-question-diamond"></i> 常见问题</h5>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="faq">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#faq1">pip install 很慢怎么办？</button></h2>
+                        <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">使用清华镜像源：<code>pip install -i https://pypi.tuna.tsinghua.edu.cn/simple 包名</code></div></div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#faq2">报错 "ModuleNotFoundError: No module named 'sklearn'"</button></h2>
+                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">说明没装scikit-learn，运行 <code>pip install scikit-learn</code>。注意包名是 scikit-learn 不是 sklearn。</div></div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#faq3">Jupyter Notebook 打不开？</button></h2>
+                        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">试试 <code>pip install --upgrade jupyter</code>，然后 <code>jupyter notebook</code>。如果还不行，用 <code>jupyter lab</code> 替代。</div></div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#faq4">Python 2 还是 Python 3？</button></h2>
+                        <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">必须用 Python 3（3.8+）。Python 2 已经停止维护，sklearn 等库不再支持。</div></div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header"><button class="accordion-button collapsed" data-bs-toggle="collapse" data-bs-target="#faq5">VSCode 能替代 Jupyter 吗？</button></h2>
+                        <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">可以！安装 VSCode + Python 扩展 + Jupyter 扩展，体验更好。但课程作业默认用 Jupyter Notebook。</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 课程专用 requirements -->
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-code"></i> 课程 requirements.txt</h5>
+            </div>
+            <div class="card-body">
+                <p>保存以下内容为 <code>requirements.txt</code>，然后运行 <code>pip install -r requirements.txt</code>：</p>
+                <pre class="bg-dark text-light p-3 rounded"><code>numpy>=1.21
+pandas>=1.3
+matplotlib>=3.5
+scikit-learn>=1.0
+seaborn>=0.11
+jupyter>=1.0</code></pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,774 @@
+{% extends "base.html" %}
+{% block title %}{{ algo.name }} - 可视化{% endblock %}
+{% block page_title %}{{ algo.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 可视化区域 -->
+    <div class="col-lg-8">
+        <div class="viz-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0"><i class="bi bi-bar-chart-line"></i> 交互式可视化</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-primary" id="btnStep">
+                        <i class="bi bi-play"></i> 单步执行
+                    </button>
+                    <button class="btn btn-sm btn-outline-success" id="btnRun">
+                        <i class="bi bi-fast-forward"></i> 自动运行
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" id="btnReset">
+                        <i class="bi bi-arrow-counterclockwise"></i> 重置
+                    </button>
+                </div>
+            </div>
+            <canvas id="vizCanvas" class="viz-canvas" width="600" height="400"></canvas>
+            <div class="mt-3 text-muted small">
+                <i class="bi bi-info-circle"></i> <span id="canvasHint">点击画布添加数据点，然后点击"单步执行"或"自动运行"查看算法过程</span>
+            </div>
+        </div>
+
+        <!-- 参数控制 -->
+        <div class="viz-controls">
+            <h6 class="mb-3"><i class="bi bi-sliders"></i> 参数控制</h6>
+            {% for param in algo.params %}
+            <div class="mb-3">
+                <label class="form-label">{{ param.name }}: <span id="val_{{ param.name }}">{{ param.default }}</span></label>
+                <input type="range" class="form-range" id="param_{{ param.name }}"
+                       min="{{ param.min }}" max="{{ param.max }}" step="{{ param.step }}" value="{{ param.default }}">
+            </div>
+            {% endfor %}
+            {% if not algo.params %}
+            <p class="text-muted mb-0">该算法无可调参数</p>
+            {% endif %}
+        </div>
+
+        <!-- 执行日志 -->
+        <div class="card mt-3">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-terminal"></i> 执行日志</h6>
+            </div>
+            <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                <div id="logArea" class="code-block" style="min-height: 100px;">
+                    <span class="text-muted">// 等待操作...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 算法信息侧边栏 -->
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-info-circle"></i> 算法说明</h6>
+            </div>
+            <div class="card-body">
+                <p>{{ algo.description }}</p>
+                <div class="formula-box mb-3">{{ algo.formula }}</div>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-lightbulb"></i> 要点</h6>
+            </div>
+            <div class="card-body">
+                {% for point in algo.key_points %}
+                <div class="key-point mb-2">
+                    <small>{{ point }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-code"></i> 示例代码</h6>
+            </div>
+            <div class="card-body">
+                <div class="code-block" style="font-size: 0.8rem;">
+{% if algo_key == 'knn' %}
+from sklearn.neighbors import KNeighborsClassifier
+
+knn = KNeighborsClassifier(n_neighbors={{ algo.params[0].default if algo.params else 3 }})
+knn.fit(X_train, y_train)
+prediction = knn.predict(X_test)
+{% elif algo_key == 'kmeans' %}
+from sklearn.cluster import KMeans
+
+kmeans = KMeans(n_clusters={{ algo.params[0].default if algo.params else 3 }})
+kmeans.fit(X)
+labels = kmeans.labels_
+centers = kmeans.cluster_centers_
+{% elif algo_key == 'linear_regression' %}
+from sklearn.linear_model import LinearRegression
+
+model = LinearRegression()
+model.fit(X_train, y_train)
+print(f"斜率: {model.coef_}, 截距: {model.intercept_}")
+{% elif algo_key == 'decision_tree' %}
+from sklearn.tree import DecisionTreeClassifier
+
+dt = DecisionTreeClassifier(max_depth={{ algo.params[0].default if algo.params else 3 }})
+dt.fit(X_train, y_train)
+{% elif algo_key == 'svm' %}
+from sklearn.svm import SVC
+
+svm = SVC(kernel='rbf', C={{ algo.params[0].default if algo.params else 1 }})
+svm.fit(X_train, y_train)
+{% elif algo_key == 'pca' %}
+from sklearn.decomposition import PCA
+
+pca = PCA(n_components={{ algo.params[0].default if algo.params else 2 }})
+X_reduced = pca.fit_transform(X)
+print(f"贡献率: {pca.explained_variance_ratio_}")
+{% elif algo_key == 'dbscan' %}
+from sklearn.cluster import DBSCAN
+
+db = DBSCAN(eps={{ algo.params[0].default if algo.params else 0.5 }}, min_samples={{ algo.params[1].default if algo.params|length > 1 else 5 }})
+labels = db.fit_predict(X)
+{% elif algo_key == 'naive_bayes' %}
+from sklearn.naive_bayes import GaussianNB
+
+nb = GaussianNB()
+nb.fit(X_train, y_train)
+prediction = nb.predict(X_test)
+{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const canvas = document.getElementById('vizCanvas');
+    const ctx = canvas.getContext('2d');
+    const logArea = document.getElementById('logArea');
+    const algoKey = '{{ algo_key }}';
+
+    // 数据点
+    let points = [];
+    let clusters = [];
+    let step = 0;
+    let running = false;
+    let centers = [];
+
+    // 类别颜色
+    const COLORS = ['#4e73df', '#e74a3b', '#1cc88a', '#f6c23e', '#36b9cc', '#6f42c1'];
+    const CLUSTER_COLORS = ['#4e73df', '#e74a3b', '#1cc88a', '#f6c23e', '#36b9cc', '#6f42c1', '#fd7e14', '#d63384'];
+
+    // 日志
+    function log(msg, type) {
+        const color = type === 'success' ? '#1cc88a' : type === 'error' ? '#e74a3b' : type === 'info' ? '#4e73df' : '#858796';
+        logArea.innerHTML += `<div style="color:${color}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+        logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    // 清空画布
+    function clearCanvas() {
+        ctx.fillStyle = '#fafbfe';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // 网格
+        ctx.strokeStyle = '#e3e6f0';
+        ctx.lineWidth = 0.5;
+        for (let x = 0; x < canvas.width; x += 30) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+        }
+        for (let y = 0; y < canvas.height; y += 30) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+        }
+    }
+
+    // 绘制点
+    function drawPoint(x, y, color, radius, label) {
+        ctx.beginPath();
+        ctx.arc(x, y, radius || 5, 0, Math.PI * 2);
+        ctx.fillStyle = color || '#4e73df';
+        ctx.fill();
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        if (label) {
+            ctx.fillStyle = '#5a5c69';
+            ctx.font = '10px sans-serif';
+            ctx.fillText(label, x + 8, y - 8);
+        }
+    }
+
+    // 距离计算
+    function dist(a, b) {
+        return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+    }
+
+    // kNN可视化
+    function drawKNN() {
+        clearCanvas();
+        const k = parseInt(document.getElementById('param_k')?.value || 3);
+
+        // 绘制已知点
+        points.forEach(p => {
+            drawPoint(p.x, p.y, COLORS[p.cls], 6);
+        });
+
+        // 如果有查询点，计算kNN
+        if (points.length > 0 && step > 0) {
+            const query = points[points.length - 1];
+            if (query.query) {
+                // 计算距离并排序
+                const others = points.filter(p => !p.query);
+                const distances = others.map(p => ({ point: p, d: dist(query, p) }));
+                distances.sort((a, b) => a.d - b.d);
+                const neighbors = distances.slice(0, k);
+
+                // 绘制连接线
+                neighbors.forEach(n => {
+                    ctx.beginPath();
+                    ctx.moveTo(query.x, query.y);
+                    ctx.lineTo(n.point.x, n.point.y);
+                    ctx.strokeStyle = 'rgba(78,115,223,0.5)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 3]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                });
+
+                // 绘制查询点
+                drawPoint(query.x, query.y, '#ff6b6b', 8, '查询点');
+
+                // 投票统计
+                const votes = {};
+                neighbors.forEach(n => {
+                    votes[n.point.cls] = (votes[n.point.cls] || 0) + 1;
+                });
+                const predicted = Object.entries(votes).sort((a, b) => b[1] - a[1])[0][0];
+                log(`kNN(k=${k}): 预测类别 = ${predicted}, 投票: ${JSON.stringify(votes)}`, 'success');
+            }
+        }
+    }
+
+    // K-Means可视化
+    function drawKMeans() {
+        clearCanvas();
+        const k = parseInt(document.getElementById('param_k')?.value || 3);
+
+        // 初始化中心
+        if (centers.length === 0 && points.length >= k) {
+            // K-Means++ 初始化
+            centers = [points[Math.floor(Math.random() * points.length)]];
+            for (let i = 1; i < k; i++) {
+                const dists = points.map(p => Math.min(...centers.map(c => dist(p, c)) ** 2));
+                const total = dists.reduce((a, b) => a + b, 0);
+                let r = Math.random() * total;
+                for (let j = 0; j < dists.length; j++) {
+                    r -= dists[j];
+                    if (r <= 0) { centers.push(points[j]); break; }
+                }
+            }
+            log(`K-Means++ 初始化 ${k} 个中心`, 'info');
+        }
+
+        // 分配标签
+        if (centers.length > 0) {
+            points.forEach(p => {
+                let minD = Infinity, minC = 0;
+                centers.forEach((c, i) => {
+                    const d = dist(p, c);
+                    if (d < minD) { minD = d; minC = i; }
+                });
+                p.cluster = minC;
+            });
+
+            // 绘制点
+            points.forEach(p => {
+                drawPoint(p.x, p.y, CLUSTER_COLORS[p.cluster || 0], 5);
+            });
+
+            // 绘制中心
+            centers.forEach((c, i) => {
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, 10, 0, Math.PI * 2);
+                ctx.fillStyle = CLUSTER_COLORS[i];
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+                // 十字标记
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(c.x - 6, c.y); ctx.lineTo(c.x + 6, c.y); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(c.x, c.y - 6); ctx.lineTo(c.x, c.y + 6); ctx.stroke();
+            });
+        }
+    }
+
+    // K-Means单步
+    function stepKMeans() {
+        const k = parseInt(document.getElementById('param_k')?.value || 3);
+        if (centers.length === 0) {
+            drawKMeans();
+            return;
+        }
+
+        // 更新中心
+        const newCenters = [];
+        for (let i = 0; i < k; i++) {
+            const clusterPoints = points.filter(p => p.cluster === i);
+            if (clusterPoints.length > 0) {
+                newCenters.push({
+                    x: clusterPoints.reduce((s, p) => s + p.x, 0) / clusterPoints.length,
+                    y: clusterPoints.reduce((s, p) => s + p.y, 0) / clusterPoints.length
+                });
+            } else {
+                newCenters.push(centers[i]);
+            }
+        }
+
+        const moved = centers.some((c, i) => dist(c, newCenters[i]) > 0.5);
+        centers = newCenters;
+        step++;
+
+        drawKMeans();
+        if (moved) {
+            log(`迭代 ${step}: 中心已更新`, 'info');
+        } else {
+            log(`迭代 ${step}: 已收敛!`, 'success');
+            running = false;
+        }
+    }
+
+    // 线性回归可视化
+    function drawLinearRegression() {
+        clearCanvas();
+        points.forEach(p => drawPoint(p.x, p.y, '#4e73df', 5));
+
+        if (points.length < 2) return;
+
+        // 最小二乘法
+        const n = points.length;
+        const sumX = points.reduce((s, p) => s + p.x, 0);
+        const sumY = points.reduce((s, p) => s + p.y, 0);
+        const sumXY = points.reduce((s, p) => s + p.x * p.y, 0);
+        const sumX2 = points.reduce((s, p) => s + p.x * p.x, 0);
+
+        const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+        const intercept = (sumY - slope * sumX) / n;
+
+        // 绘制回归线
+        const x1 = 0, x2 = canvas.width;
+        const y1 = slope * x1 + intercept;
+        const y2 = slope * x2 + intercept;
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = '#e74a3b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // 绘制残差
+        points.forEach(p => {
+            const yPred = slope * p.x + intercept;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x, yPred);
+            ctx.strokeStyle = 'rgba(231,74,59,0.3)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        });
+
+        // 计算R²
+        const meanY = sumY / n;
+        const ssTot = points.reduce((s, p) => s + (p.y - meanY) ** 2, 0);
+        const ssRes = points.reduce((s, p) => s + (p.y - (slope * p.x + intercept)) ** 2, 0);
+        const r2 = 1 - ssRes / ssTot;
+
+        log(`线性回归: y = ${slope.toFixed(2)}x + ${intercept.toFixed(2)}, R² = ${r2.toFixed(4)}`, 'success');
+    }
+
+    // 决策树可视化
+    function drawDecisionTree() {
+        clearCanvas();
+        const maxDepth = parseInt(document.getElementById('param_max_depth')?.value || 3);
+
+        if (points.length < 4) {
+            points.forEach(p => drawPoint(p.x, p.y, COLORS[p.cls], 5));
+            return;
+        }
+
+        // 简化决策树：水平/垂直分割
+        function split(points, depth, bounds) {
+            if (depth >= maxDepth || points.length < 2) return;
+            if (new Set(points.map(p => p.cls)).size === 1) return;
+
+            // 选择分割维度和阈值
+            const dim = depth % 2 === 0 ? 'x' : 'y';
+            const values = points.map(p => p[dim]).sort((a, b) => a - b);
+            const threshold = values[Math.floor(values.length / 2)];
+
+            // 绘制分割线
+            ctx.beginPath();
+            if (dim === 'x') {
+                ctx.moveTo(threshold, bounds.top);
+                ctx.lineTo(threshold, bounds.bottom);
+            } else {
+                ctx.moveTo(bounds.left, threshold);
+                ctx.lineTo(bounds.right, threshold);
+            }
+            ctx.strokeStyle = 'rgba(133,135,150,0.5)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 递归
+            const left = points.filter(p => p[dim] < threshold);
+            const right = points.filter(p => p[dim] >= threshold);
+
+            if (dim === 'x') {
+                split(left, depth + 1, { ...bounds, right: threshold });
+                split(right, depth + 1, { ...bounds, left: threshold });
+            } else {
+                split(left, depth + 1, { ...bounds, bottom: threshold });
+                split(right, depth + 1, { ...bounds, top: threshold });
+            }
+        }
+
+        split(points, 0, { left: 0, top: 0, right: canvas.width, bottom: canvas.height });
+        points.forEach(p => drawPoint(p.x, p.y, COLORS[p.cls], 5));
+        log(`决策树分割完成 (max_depth=${maxDepth})`, 'success');
+    }
+
+    // DBSCAN可视化
+    function drawDBSCAN() {
+        clearCanvas();
+        const eps = parseFloat(document.getElementById('param_eps')?.value || 0.5) * 100;
+        const minSamples = parseInt(document.getElementById('param_min_samples')?.value || 5);
+
+        // 标记核心点
+        const labels = new Array(points.length).fill(-1);
+        let clusterId = 0;
+
+        points.forEach((p, i) => {
+            const neighbors = points.filter(q => dist(p, q) <= eps);
+            if (neighbors.length >= minSamples && labels[i] === -1) {
+                // 新簇
+                const queue = [i];
+                labels[i] = clusterId;
+                while (queue.length > 0) {
+                    const idx = queue.shift();
+                    const nNeighbors = points.filter(q => dist(points[idx], q) <= eps);
+                    nNeighbors.forEach((_, j) => {
+                        const nIdx = points.indexOf(nNeighbors[j]);
+                        if (labels[nIdx] === -1) {
+                            labels[nIdx] = clusterId;
+                            if (nNeighbors.length >= minSamples) queue.push(nIdx);
+                        }
+                    });
+                }
+                clusterId++;
+            }
+        });
+
+        // 绘制
+        points.forEach((p, i) => {
+            if (labels[i] === -1) {
+                drawPoint(p.x, p.y, '#858796', 4, '噪声');
+            } else {
+                drawPoint(p.x, p.y, CLUSTER_COLORS[labels[i] % CLUSTER_COLORS.length], 5);
+            }
+        });
+
+        // 绘制eps半径（第一个核心点）
+        const coreIdx = labels.findIndex(l => l !== -1);
+        if (coreIdx >= 0) {
+            ctx.beginPath();
+            ctx.arc(points[coreIdx].x, points[coreIdx].y, eps, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(78,115,223,0.3)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        const noiseCount = labels.filter(l => l === -1).length;
+        log(`DBSCAN: ${clusterId}个簇, ${noiseCount}个噪声点 (eps=${(eps/100).toFixed(1)}, MinPts=${minSamples})`, 'success');
+    }
+
+    // PCA可视化
+    function drawPCA() {
+        clearCanvas();
+        points.forEach(p => drawPoint(p.x, p.y, COLORS[p.cls || 0], 5));
+
+        if (points.length < 2) return;
+
+        // 计算均值
+        const mx = points.reduce((s, p) => s + p.x, 0) / points.length;
+        const my = points.reduce((s, p) => s + p.y, 0) / points.length;
+
+        // 计算协方差矩阵
+        let sxx = 0, sxy = 0, syy = 0;
+        points.forEach(p => {
+            sxx += (p.x - mx) ** 2;
+            sxy += (p.x - mx) * (p.y - my);
+            syy += (p.y - my) ** 2;
+        });
+        sxx /= points.length;
+        sxy /= points.length;
+        syy /= points.length;
+
+        // 特征值和特征向量
+        const trace = sxx + syy;
+        const det = sxx * syy - sxy * sxy;
+        const disc = Math.sqrt(Math.max(0, trace * trace / 4 - det));
+        const lambda1 = trace / 2 + disc;
+        const lambda2 = trace / 2 - disc;
+
+        let vx, vy;
+        if (Math.abs(sxy) > 0.001) {
+            vx = sxy;
+            vy = lambda1 - sxx;
+            const len = Math.sqrt(vx * vx + vy * vy);
+            vx /= len; vy /= len;
+        } else {
+            vx = 1; vy = 0;
+        }
+
+        // 绘制主成分方向
+        const scale = 150;
+        ctx.beginPath();
+        ctx.moveTo(mx - vx * scale, my - vy * scale);
+        ctx.lineTo(mx + vx * scale, my + vy * scale);
+        ctx.strokeStyle = '#e74a3b';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // 第二主成分
+        ctx.beginPath();
+        ctx.moveTo(mx - vy * scale, my + vx * scale);
+        ctx.lineTo(mx + vy * scale, my - vx * scale);
+        ctx.strokeStyle = '#1cc88a';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 投影点
+        points.forEach(p => {
+            const dx = p.x - mx, dy = p.y - my;
+            const projX = mx + (dx * vx + dy * vy) * vx;
+            const projY = my + (dx * vx + dy * vy) * vy;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(projX, projY);
+            ctx.strokeStyle = 'rgba(231,74,59,0.2)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            drawPoint(projX, projY, '#e74a3b', 3);
+        });
+
+        const ratio = lambda1 / (lambda1 + lambda2);
+        log(`PC1方差贡献率: ${(ratio * 100).toFixed(1)}%, PC2: ${((1 - ratio) * 100).toFixed(1)}%`, 'success');
+    }
+
+    // SVM可视化（简化）
+    function drawSVM() {
+        clearCanvas();
+        points.forEach(p => drawPoint(p.x, p.y, COLORS[p.cls], 6));
+
+        if (points.length < 4 || new Set(points.map(p => p.cls)).size < 2) return;
+
+        // 简化：找到两类的中心，画分割线
+        const classes = [...new Set(points.map(p => p.cls))];
+        const centers2 = classes.map(cls => {
+            const pts = points.filter(p => p.cls === cls);
+            return {
+                cls: cls,
+                x: pts.reduce((s, p) => s + p.x, 0) / pts.length,
+                y: pts.reduce((s, p) => s + p.y, 0) / pts.length
+            };
+        });
+
+        if (centers2.length === 2) {
+            const dx = centers2[1].x - centers2[0].x;
+            const dy = centers2[1].y - centers2[0].y;
+            const mx = (centers2[0].x + centers2[1].x) / 2;
+            const my = (centers2[0].y + centers2[1].y) / 2;
+
+            // 垂直平分线
+            const len = Math.sqrt(dx * dx + dy * dy);
+            const nx = -dy / len, ny = dx / len;
+            const scale = 300;
+
+            ctx.beginPath();
+            ctx.moveTo(mx - nx * scale, my - ny * scale);
+            ctx.lineTo(mx + nx * scale, my + ny * scale);
+            ctx.strokeStyle = '#e74a3b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // margin边界
+            ctx.beginPath();
+            ctx.moveTo(mx - nx * scale + dx / len * 30, my - ny * scale + dy / len * 30);
+            ctx.lineTo(mx + nx * scale + dx / len * 30, my + ny * scale + dy / len * 30);
+            ctx.strokeStyle = 'rgba(231,74,59,0.3)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(mx - nx * scale - dx / len * 30, my - ny * scale - dy / len * 30);
+            ctx.lineTo(mx + nx * scale - dx / len * 30, my + ny * scale - dy / len * 30);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            log(`SVM: 最大间隔超平面已找到, margin宽度 ≈ ${60}px`, 'success');
+        }
+    }
+
+    // 朴素贝叶斯可视化
+    function drawNaiveBayes() {
+        clearCanvas();
+        points.forEach(p => drawPoint(p.x, p.y, COLORS[p.cls], 6));
+
+        const classes = [...new Set(points.map(p => p.cls))];
+        classes.forEach(cls => {
+            const pts = points.filter(p => p.cls === cls);
+            if (pts.length < 2) return;
+
+            const mx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+            const my = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+            const sx = Math.sqrt(pts.reduce((s, p) => s + (p.x - mx) ** 2, 0) / pts.length);
+            const sy = Math.sqrt(pts.reduce((s, p) => s + (p.y - my) ** 2, 0) / pts.length);
+
+            // 绘制高斯分布椭圆
+            ctx.beginPath();
+            ctx.ellipse(mx, my, sx * 2, sy * 2, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = COLORS[cls];
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.3;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            // 中心标记
+            drawPoint(mx, my, COLORS[cls], 8, `类${cls}`);
+        });
+        log(`朴素贝叶斯: ${classes.length}个类别的高斯分布已估计`, 'success');
+    }
+
+    // 绘制函数映射
+    const drawFunctions = {
+        'knn': drawKNN,
+        'kmeans': drawKMeans,
+        'linear_regression': drawLinearRegression,
+        'decision_tree': drawDecisionTree,
+        'svm': drawSVM,
+        'pca': drawPCA,
+        'dbscan': drawDBSCAN,
+        'naive_bayes': drawNaiveBayes
+    };
+
+    // 单步执行
+    function stepViz() {
+        if (algoKey === 'kmeans') {
+            stepKMeans();
+        } else {
+            step++;
+            (drawFunctions[algoKey] || drawKNN)();
+        }
+    }
+
+    // 自动运行
+    function autoRun() {
+        if (running) return;
+        running = true;
+        const interval = setInterval(() => {
+            if (!running || step > 20) {
+                clearInterval(interval);
+                running = false;
+                log('自动运行结束', 'info');
+                return;
+            }
+            stepViz();
+        }, 500);
+    }
+
+    // 重置
+    function resetViz() {
+        points = [];
+        clusters = [];
+        centers = [];
+        step = 0;
+        running = false;
+        logArea.innerHTML = '<span class="text-muted">// 已重置，等待操作...</span>';
+        clearCanvas();
+    }
+
+    // 画布点击
+    canvas.addEventListener('click', function(e) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // 左键添加类别0，右键添加类别1
+        const cls = e.button === 0 ? 0 : 0;
+        const existingClasses = [...new Set(points.filter(p => !p.query).map(p => p.cls))];
+
+        // 简化：交替分配类别
+        let newCls = 0;
+        if (algoKey === 'knn' || algoKey === 'svm' || algoKey === 'naive_bayes' || algoKey === 'decision_tree') {
+            // 有监督：交替分配
+            newCls = points.filter(p => !p.query).length % 3;
+        }
+
+        points.push({ x, y, cls: newCls, query: false });
+        drawPoint(x, y, COLORS[newCls], 5);
+
+        if (algoKey === 'knn') {
+            log(`添加数据点 (${Math.round(x)}, ${Math.round(y)}), 类别=${newCls}`, 'info');
+        } else {
+            log(`添加数据点 (${Math.round(x)}, ${Math.round(y)})`, 'info');
+        }
+    });
+
+    // 右键添加查询点（kNN）
+    canvas.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        if (algoKey === 'knn') {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            points.push({ x, y, cls: -1, query: true });
+            drawKNN();
+            log(`添加查询点 (${Math.round(x)}, ${Math.round(y)})`, 'info');
+        }
+    });
+
+    // 参数变化
+    document.querySelectorAll('input[type="range"]').forEach(input => {
+        input.addEventListener('input', function() {
+            const name = this.id.replace('param_', '');
+            const valSpan = document.getElementById('val_' + name);
+            if (valSpan) valSpan.textContent = this.value;
+
+            if (algoKey === 'kmeans') {
+                centers = []; // k变化时重新初始化
+            }
+            step = 0;
+            (drawFunctions[algoKey] || clearCanvas)();
+        });
+    });
+
+    // 按钮事件
+    document.getElementById('btnStep').addEventListener('click', stepViz);
+    document.getElementById('btnRun').addEventListener('click', autoRun);
+    document.getElementById('btnReset').addEventListener('click', resetViz);
+
+    // 初始化
+    clearCanvas();
+    log(`已加载 ${algo.name} 可视化`, 'info');
+    log('点击画布添加数据点，右键添加查询点(kNN)', 'info');
+})();
+</script>
+{% endblock %}

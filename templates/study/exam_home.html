@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}期末模拟考试{% endblock %}
+{% block page_title %}期末模拟考试{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-pencil-square"></i> 模拟考试设置</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> 从13章题库中随机抽题，限时作答，交卷后即时出分。
+                </div>
+                <form id="examForm">
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">题目数量</label>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="button" class="btn btn-outline-primary count-btn active" data-count="20">20题 (约15分钟)</button>
+                            <button type="button" class="btn btn-outline-primary count-btn" data-count="30">30题 (约25分钟)</button>
+                            <button type="button" class="btn btn-outline-primary count-btn" data-count="50">50题 (约40分钟)</button>
+                        </div>
+                        <input type="hidden" name="count" id="countInput" value="20">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">选择章节（不选则全部）</label>
+                        <div class="row g-2">
+                            {% for i in range(1, 14) %}
+                            <div class="col-6 col-md-4">
+                                <div class="form-check">
+                                    <input class="form-check-input chapter-check" type="checkbox" value="{{ i }}" id="ch{{ i }}">
+                                    <label class="form-check-label" for="ch{{ i }}">第{{i}}章</label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">考试时长</label>
+                        <select class="form-select" id="timeLimit" style="max-width: 300px;">
+                            <option value="0">不限时</option>
+                            <option value="15">15分钟</option>
+                            <option value="25" selected>25分钟</option>
+                            <option value="40">40分钟</option>
+                            <option value="60">60分钟</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-lg" onclick="startExam()">
+                        <i class="bi bi-play-fill"></i> 开始考试
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 历史成绩 -->
+        <div class="card mt-4">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-clock-history"></i> 考试记录</h6>
+            </div>
+            <div class="card-body" id="examHistory">
+                <p class="text-muted text-center mb-0">暂无考试记录</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.count-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.count-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        document.getElementById('countInput').value = this.dataset.count;
+    });
+});
+
+function startExam() {
+    const count = document.getElementById('countInput').value;
+    const chapters = [];
+    document.querySelectorAll('.chapter-check:checked').forEach(cb => chapters.push(cb.value));
+    const time = document.getElementById('timeLimit').value;
+
+    let url = '/study/exam/start?count=' + count;
+    if (chapters.length) url += '&chapters=' + chapters.join(',');
+
+    // 存储时间限制
+    localStorage.setItem('exam_time_limit', time);
+    window.location.href = url;
+}
+
+// 加载考试记录
+function loadHistory() {
+    const history = JSON.parse(localStorage.getItem('exam_history') || '[]');
+    const container = document.getElementById('examHistory');
+    if (history.length === 0) return;
+    container.innerHTML = history.slice(-10).reverse().map(h =>
+        '<div class="d-flex justify-content-between align-items-center border-bottom py-2">' +
+        '<div><span class="fw-bold">' + h.score + '分</span> <span class="text-muted">(' + h.correct + '/' + h.total + ')</span></div>' +
+        '<small class="text-muted">' + h.date + '</small></div>'
+    ).join('');
+}
+loadHistory();
+</script>
+{% endblock %}

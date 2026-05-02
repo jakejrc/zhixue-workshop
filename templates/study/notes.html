@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}课程笔记{% endblock %}
+{% block page_title %}课程笔记{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> 笔记保存在浏览器本地（localStorage），换浏览器或清缓存会丢失。建议定期导出备份。
+        </div>
+
+        <!-- 笔记编辑器 -->
+        <div class="card mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-pencil"></i> 新建/编辑笔记</h6>
+                <div class="d-flex gap-2">
+                    <select class="form-select form-select-sm" id="noteChapter" style="width: auto;">
+                        <option value="general">通用笔记</option>
+                        {% for i in range(1, 14) %}
+                        <option value="ch{{ i }}">第{{i}}章</option>
+                        {% endfor %}
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="saveNote()">
+                        <i class="bi bi-save"></i> 保存
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <input type="text" class="form-control mb-2" id="noteTitle" placeholder="笔记标题...">
+                <textarea class="form-control" id="noteContent" rows="8" placeholder="在这里写笔记...&#10;&#10;支持记录：&#10;- 课堂重点&#10;- 自己的理解&#10;- 疑问和待解决的问题&#10;- 代码片段"></textarea>
+            </div>
+        </div>
+
+        <!-- 筛选 -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex gap-2 align-items-center">
+                <span class="fw-bold">我的笔记</span>
+                <select class="form-select form-select-sm" id="filterChapter" onchange="loadNotes()" style="width: auto;">
+                    <option value="all">全部</option>
+                    <option value="general">通用</option>
+                    {% for i in range(1, 14) %}
+                    <option value="ch{{ i }}">第{{i}}章</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-success btn-sm" onclick="exportNotes()">
+                    <i class="bi bi-download"></i> 导出
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="importNotes()">
+                    <i class="bi bi-upload"></i> 导入
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="clearNotes()">
+                    <i class="bi bi-trash"></i> 清空
+                </button>
+            </div>
+        </div>
+
+        <!-- 笔记列表 -->
+        <div id="notesList">
+            <p class="text-muted text-center">暂无笔记</p>
+        </div>
+    </div>
+</div>
+
+<!-- 隐藏的文件选择器 -->
+<input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const STORAGE_KEY = 'zhixue_notes';
+
+function getNotes() {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+}
+
+function saveNotes(notes) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+}
+
+function saveNote() {
+    const title = document.getElementById('noteTitle').value.trim();
+    const content = document.getElementById('noteContent').value.trim();
+    const chapter = document.getElementById('noteChapter').value;
+
+    if (!content) { alert('请输入笔记内容'); return; }
+
+    const notes = getNotes();
+    notes.unshift({
+        id: Date.now(),
+        title: title || '未命名笔记',
+        content: content,
+        chapter: chapter,
+        date: new Date().toLocaleString('zh-CN')
+    });
+    saveNotes(notes);
+    document.getElementById('noteTitle').value = '';
+    document.getElementById('noteContent').value = '';
+    loadNotes();
+}
+
+function loadNotes() {
+    const filter = document.getElementById('filterChapter').value;
+    let notes = getNotes();
+    if (filter !== 'all') notes = notes.filter(n => n.chapter === filter);
+
+    const container = document.getElementById('notesList');
+    if (notes.length === 0) {
+        container.innerHTML = '<p class="text-muted text-center">暂无笔记</p>';
+        return;
+    }
+    container.innerHTML = notes.map(n =>
+        '<div class="card mb-3">' +
+        '<div class="card-body">' +
+        '<div class="d-flex justify-content-between align-items-start mb-2">' +
+        '<div><h6 class="mb-0">' + n.title + '</h6>' +
+        '<small class="text-muted">' + (n.chapter === 'general' ? '通用' : '第' + n.chapter.replace('ch','') + '章') + ' · ' + n.date + '</small></div>' +
+        '<div class="d-flex gap-1">' +
+        '<button class="btn btn-outline-primary btn-sm" onclick="editNote(' + n.id + ')"><i class="bi bi-pencil"></i></button>' +
+        '<button class="btn btn-outline-danger btn-sm" onclick="deleteNote(' + n.id + ')"><i class="bi bi-trash"></i></button>' +
+        '</div></div>' +
+        '<div class="text-muted" style="white-space: pre-line;">' + n.content + '</div>' +
+        '</div></div>'
+    ).join('');
+}
+
+function editNote(id) {
+    const notes = getNotes();
+    const note = notes.find(n => n.id === id);
+    if (!note) return;
+    document.getElementById('noteTitle').value = note.title;
+    document.getElementById('noteContent').value = note.content;
+    document.getElementById('noteChapter').value = note.chapter;
+    deleteNote(id);
+    window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function deleteNote(id) {
+    if (!confirm('删除这条笔记？')) return;
+    const notes = getNotes().filter(n => n.id !== id);
+    saveNotes(notes);
+    loadNotes();
+}
+
+function exportNotes() {
+    const notes = getNotes();
+    const blob = new Blob([JSON.stringify(notes, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = '智学工坊_笔记_' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+}
+
+function importNotes() {
+    document.getElementById('importFile').click();
+}
+
+function handleImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        try {
+            const imported = JSON.parse(ev.target.result);
+            const existing = getNotes();
+            const merged = [...imported, ...existing];
+            saveNotes(merged);
+            loadNotes();
+            alert('导入成功！共导入 ' + imported.length + ' 条笔记。');
+        } catch(err) {
+            alert('导入失败：文件格式不正确');
+        }
+    };
+    reader.readAsText(file);
+}
+
+function clearNotes() {
+    if (!confirm('确定清空所有笔记？此操作不可恢复！')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    loadNotes();
+}
+
+loadNotes();
+</script>
+{% endblock %}
